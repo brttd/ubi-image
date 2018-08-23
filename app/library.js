@@ -43,7 +43,7 @@ const folders = [
 ]
 
 const search = {
-    term: '',
+    terms: [],
 
     results: []
 }
@@ -98,6 +98,7 @@ let setSize
         }
 
         elem.firstChild.src = file.path
+        elem.firstChild.title = file.path
 
         if (file.width / file.height > 1) {
             elem.firstChild.style.width = elem.lastChild.style.width =
@@ -133,9 +134,21 @@ let setSize
     checkSearchDisplay = function(file) {
         removeSearchDisplay(file)
 
-        let index = file.name.indexOf(search.term)
+        let index = -1
+        let missed = 0
+
+        for (let i = 0; i < search.terms.length; i++) {
+            let tIndex = file.name.indexOf(search.terms[i])
+            if (tIndex === -1) {
+                missed += search.terms[i].length
+            } else {
+                index += tIndex + 1
+            }
+        }
 
         if (index !== -1) {
+            index += missed
+
             file.searchScore = index
 
             let resultIndex = search.results.findIndex(
@@ -179,7 +192,7 @@ let setSize
     }
 
     searchInput.addEventListener('input', () => {
-        search.term = searchInput.value
+        search.terms = searchInput.value.split(' ')
         folders.forEach(folder => folder.updateSearch())
     })
 }
