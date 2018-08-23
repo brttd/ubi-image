@@ -1,0 +1,10 @@
+{
+    "name": "image-library",
+    "author": "Brett Doyle",
+    "version": "0.1",
+    "main": "app.js",
+    "dependencies": {
+        "async": "^2.6.1",
+        "image-size": "^0.6.3"
+    }
+}

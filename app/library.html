@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf8">
+        <title>Image Library</title>
+        <style>
+            @font-face {
+                font-family: 'Inter UI';
+
+                src: url('Inter-UI-Regular.woff2') format('woff2');
+
+                font-display: block;
+            }
+            * {
+                box-sizing: border-box;
+
+                color: hsl(222, 8%, 71%);
+                font-size: 14px;
+                font-family: "Inter UI";
+                line-height: 1;
+            }
+            button, input {
+                outline: none;
+            }
+
+            html, body {
+                width: 100%;
+                height: 100%;
+            }
+            body {
+                margin: 0;
+
+                background: hsl(225, 3%, 24%);
+
+                border: 2px solid hsl(225, 7%, 8%);
+            }
+
+            *::-webkit-scrollbar {
+                background: transparent;
+
+                width: 13px;
+            }
+            *::-webkit-scrollbar-thumb {
+                background: #484C55;
+                border: 3px solid hsl(225, 3%, 24%);
+            }
+
+            .horizontal, .vertical {
+                display: flex;
+                flex-wrap: nowrap;
+            }
+            .horizontal {
+                flex-direction: row;
+            }
+            .vertical {
+                flex-direction: column;
+            }
+            .horizontal *, .vertical * {
+                flex: 1 1 auto;
+            }
+
+            .drag {
+                display: block;
+
+                flex: 0 0 auto;
+
+                padding: 6px;
+                -webkit-app-region: drag;
+                white-space: pre;
+            }
+            .drag::after {
+                content: ' '
+            }
+
+            #folders {
+                width: 200px;
+                flex: 0 0 auto;
+
+                padding: 3px;
+
+                user-select: none;
+
+                border-right: 1px solid hsl(216, 6%, 16%);
+            }
+            #add-folder {
+                flex: 0 0 auto;
+
+                margin: 3px;
+                padding: 3px 6px;
+
+                background: hsl(216, 6%, 16%);
+                border: 1px solid hsl(225, 7%, 12%);
+                color: hsl(222, 8%, 71%);
+            }
+            #folders > span {
+                flex: 0 0 auto;
+
+                padding: 3px 6px;
+                text-align: center;
+            }
+            .folder-list {
+                flex: 1 1 50%;
+
+                overflow: auto;
+                overflow-x: hidden;
+
+                margin: 3px;
+
+                border: 1px solid hsl(225, 7%, 12%);
+            }
+            .folder-list div {
+                display: flex;
+                flex-direction: row;
+            }
+            .folder-list div button {
+                flex: 0 0 auto;
+
+                padding: 0px 6px;
+
+                border: none;
+                background: none;
+                color: hsl(222, 8%, 71%);
+            }
+            .folder-list div span {
+                flex: 1 1 auto;
+
+                padding: 3px 0px;
+
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .folder-list div .save::after {
+                content: '☆'
+            }
+            .folder-list div .save:hover::after {
+                content: '★'
+            }
+            .folder-list div.saved .save::after {
+                content: '★'
+            }
+            .folder-list div.saved .save:hover::after {
+                content: '☆'
+            }
+
+            #search {
+                flex: 0 0 auto;
+
+                padding: 3px;
+
+                border-bottom: 1px solid hsl(216, 6%, 16%);
+            }
+            #search-box {
+                margin: 3px;
+                padding: 3px 6px;
+
+                background: hsl(216, 6%, 16%);
+                border: 1px solid hsl(225, 7%, 12%);
+                color: hsl(222, 8%, 71%);
+
+                outline: none;
+            }
+
+            #results {
+                overflow: auto;
+                overflow-x: hidden;
+
+                padding: 3px;
+
+                background: hsl(228, 5%, 20%);
+            }
+            #results::-webkit-scrollbar-thumb {
+                border-color: hsl(228, 5%, 20%);
+            }
+            #results div  {
+                display: inline-block;
+
+                vertical-align: top;
+
+                margin: 3px;
+
+                width: min-content;
+
+                text-align: center;
+            }
+            #results div img, #results div span {
+                display: block;
+            }
+            #results div img {
+                border: 1px solid hsl(225, 7%, 12%);
+            }
+            #results div span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+
+                padding: 3px;
+            }
+        </style>
+    </head>
+    <body class="horizontal">
+        <div id="folders" class="vertical">
+            <div class="drag"></div>
+            <button id="add-folder">Add Folder</button>
+            <div id="active-folders" class="folder-list"></div>
+            <span>Saved</span>
+            <div id="saved-folders" class="folder-list"></div>
+        </div>
+        <div class="vertical">
+            <div id="search" class="horizontal">
+                <input id="search-box" type="text">
+            </div>
+            <div id="results"></div>
+        </div>
+        <script src="library.js"></script>
+    </body>
+</html>

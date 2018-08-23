@@ -1,0 +1,8 @@
+{
+    "name": "image-library",
+    "author": "Brett Doyle",
+    "version": "0.1",
+    "dependencies": {
+        "electron": "^2.0.8"
+    }
+}
