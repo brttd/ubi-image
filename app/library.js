@@ -51,19 +51,37 @@ const search = {
 const userOptions = {
     savedFolders: [],
 
-    save: () => {
-        fs.writeFile(
-            path.join(app.getPath('userData'), 'userOptions.json'),
-            JSON.stringify({
-                savedFolders: userOptions.savedFolders
-            }),
-            'utf8',
-            error => {
-                if (error) {
-                    console.error(error)
+    _lastSaveTime: 0,
+    _minSaveTime: 500,
+    save: (force = false) => {
+        if (
+            force ||
+            Date.now() - userOptions._lastSaveTime >= userOptions._minSaveTime
+        ) {
+            userOptions._lastSaveTime = Date.now()
+
+            fs.writeFile(
+                path.join(app.getPath('userData'), 'userOptions.json'),
+                JSON.stringify({
+                    savedFolders: userOptions.savedFolders
+                }),
+                'utf8',
+                error => {
+                    if (error) {
+                        console.error("Couldn't save user options", error)
+                    } else {
+                        userOptions._lastSaveTime = Date.now()
+                    }
                 }
-            }
-        )
+            )
+        } else {
+            setTimeout(
+                userOptions.save,
+                userOptions._minSaveTime -
+                    (Date.now() - userOptions._lastSaveTime) +
+                    5
+            )
+        }
     }
 }
 
