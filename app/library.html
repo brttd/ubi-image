@@ -38,16 +38,19 @@
             *::-webkit-scrollbar {
                 background: transparent;
 
-                width: 13px;
+                width: 10px;
             }
             *::-webkit-scrollbar-thumb {
                 background: #484C55;
                 border: 3px solid hsl(225, 3%, 24%);
+                border-left: none;
             }
 
             .horizontal, .vertical {
                 display: flex;
                 flex-wrap: nowrap;
+
+                overflow: hidden;
             }
             .horizontal {
                 flex-direction: row;
@@ -105,6 +108,8 @@
                 overflow-x: hidden;
 
                 margin: 3px;
+
+                background: hsl(216, 5%, 20%);
 
                 border: 1px solid hsl(225, 7%, 12%);
             }
@@ -182,10 +187,11 @@
             }
 
             #results {
-                overflow: auto;
+                overflow: scroll;
                 overflow-x: hidden;
 
                 padding: 3px;
+                padding-right: 0;
 
                 background: hsl(228, 5%, 20%);
             }
@@ -207,11 +213,14 @@
                 display: block;
             }
             #results div img {
+                margin: 0 auto;
                 border: 1px solid hsl(225, 7%, 12%);
             }
             #results div span {
                 overflow: hidden;
                 text-overflow: ellipsis;
+
+                white-space: nowrap;
 
                 padding: 3px;
             }
@@ -220,7 +229,7 @@
     <body class="horizontal">
         <div id="folders" class="vertical">
             <div class="drag"></div>
-            <button id="add-folder">Add Folder</button>
+            <button id="add-folder">🗁 Add Folder</button>
             <div id="active-folders" class="folder-list"></div>
             <span>Saved</span>
             <div id="saved-folders" class="folder-list"></div>
