@@ -71,6 +71,8 @@ function isValidImage(filePath) {
     return validImageExtensions.includes(path.extname(filePath).toLowerCase())
 }
 
+let thisWindow
+
 let checkSearchDisplay
 let removeSearchDisplay
 
@@ -330,7 +332,7 @@ let addSavedFolder
 
         if (parentFolder) {
             dialog.showMessageBox(
-                BrowserWindow.getFocusedWindow(),
+                thisWindow,
                 {
                     type: 'question',
 
@@ -364,7 +366,7 @@ let addSavedFolder
 
         if (childFolders.length !== 0) {
             dialog.showMessageBox(
-                BrowserWindow.getFocusedWindow(),
+                thisWindow,
                 {
                     type: 'question',
 
@@ -535,7 +537,7 @@ let addSavedFolder
 
     addFolderButton.addEventListener('click', () => {
         dialog.showOpenDialog(
-            BrowserWindow.getFocusedWindow(),
+            thisWindow,
             {
                 title: 'Add Folder',
                 buttonLabel: 'Add',
@@ -553,6 +555,99 @@ let addSavedFolder
             }
         )
     })
+}
+
+//Window UI
+{
+    const maximizeButton = document.getElementById('maximize-window')
+
+    let maximized = false
+    let maximizeTime = 0
+
+    document.getElementById('minimize-window').addEventListener('click', () => {
+        thisWindow.minimize()
+    })
+
+    maximizeButton.addEventListener('click', () => {
+        if (maximized) {
+            thisWindow.unmaximize()
+            maximizeButton.textContent = '🗖'
+        } else {
+            thisWindow.maximize()
+            maximizeButton.textContent = '🗗'
+
+            maximizeTime = Date.now()
+        }
+
+        maximized = !maximized
+    })
+
+    document.getElementById('close-window').addEventListener('click', () => {
+        thisWindow.close()
+    })
+
+    let setup = false
+    function setupMaximize() {
+        if (setup) {
+            return false
+        }
+        setup = true
+
+        if (thisWindow.isMaximized()) {
+            maximizeButton.textContent = '🗗'
+            maximized = true
+        }
+
+        let onUnMax = () => {
+            maximized = false
+            maximizeButton.textContent = '🗖'
+        }
+
+        thisWindow.on('unmaximize', onUnMax)
+        thisWindow.on('resize', () => {
+            if (Date.now() - maximizeTime > 100) {
+                onUnMax()
+            }
+        })
+        thisWindow.on('move', () => {
+            if (Date.now() - maximizeTime > 100) {
+                onUnMax()
+            }
+        })
+
+        thisWindow.on('maximize', () => {
+            maximized = true
+            maximizeButton.textContent = '🗗'
+
+            maximizeTime = Date.now()
+        })
+    }
+
+    thisWindow = BrowserWindow.getFocusedWindow()
+
+    if (thisWindow) {
+        console.log(thisWindow)
+        setupMaximize()
+    } else {
+        window.addEventListener(
+            'focus',
+            () => {
+                thisWindow = BrowserWindow.getFocusedWindow()
+
+                setupMaximize()
+            },
+            { capture: true, once: true }
+        )
+        window.addEventListener(
+            'click',
+            () => {
+                thisWindow = BrowserWindow.getFocusedWindow()
+
+                setupMaximize()
+            },
+            { capture: true, once: true }
+        )
+    }
 }
 
 fs.readFile(

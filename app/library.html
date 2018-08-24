@@ -161,6 +161,26 @@
                 outline: none;
             }
 
+            button.window {
+                flex: 0 0 auto;
+
+                margin: 3px;
+                padding: 3px 7px;
+                /* 1 pixel shift left-up to make button look centered */
+                padding-top: 2px;
+                padding-right: 8px;
+
+                background: none;
+                border: none;
+                outline: none;
+            }
+            button.window:hover {
+                background: hsl(216, 5%, 20%);
+            }
+            #close-window:hover {
+                background: hsl(0, 40%, 30%);
+            }
+
             #results {
                 overflow: auto;
                 overflow-x: hidden;
@@ -208,6 +228,9 @@
         <div class="vertical">
             <div id="search" class="horizontal">
                 <input id="search-box" type="text">
+                <button class="window" id="minimize-window">🗕</button>
+                <button class="window" id="maximize-window">🗖</button>
+                <button class="window" id="close-window">🗙</button>
             </div>
             <div id="results"></div>
         </div>
