@@ -265,7 +265,7 @@ let addSavedFolder
             (error, contentList) => {
                 if (error) {
                     return console.error(
-                        'Could not search directory',
+                        "Couldn't search directory",
                         subDirectory,
                         'in folder',
                         folder,
@@ -285,7 +285,7 @@ let addSavedFolder
                         fs.stat(fullPath, (error, stats) => {
                             if (error) {
                                 console.error(
-                                    'Could not stat item',
+                                    "Couldn't stat item",
                                     item,
                                     'in directory',
                                     subDirectory,
@@ -483,7 +483,7 @@ let addSavedFolder
             console.log('Watcher closed!', event)
         })
         folder.watcher.on('error', error => {
-            console.log('Watcher error!', error)
+            console.error('Watcher error!', error)
         })
 
         updateFolder(folder)
@@ -720,7 +720,7 @@ fs.readFile(
     'utf8',
     (error, content) => {
         if (error) {
-            return console.error(error)
+            return console.error("Couldn't load userOptions.json", error)
         }
 
         try {
@@ -732,7 +732,7 @@ fs.readFile(
                 }
             }
         } catch (error) {
-            console.error(error)
+            console.error("Couldn't parse userOptionss.json", error)
         }
     }
 )
