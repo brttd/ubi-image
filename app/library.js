@@ -691,7 +691,6 @@ let addSavedFolder
     thisWindow = BrowserWindow.getFocusedWindow()
 
     if (thisWindow) {
-        console.log(thisWindow)
         setupMaximize()
     } else {
         window.addEventListener(
