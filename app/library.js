@@ -226,6 +226,29 @@ let addSavedFolder
 
     const addFolderButton = document.getElementById('add-folder')
 
+    const minSaveTime = 1000
+    let lastSaveTime = 0
+
+    function saveFolders() {
+        if (Date.now() - lastSaveTime > minSaveTime) {
+            fs.writeFile(
+                path.join(app.getPath('userData'), 'folders.txt'),
+                folders.map(folder => folder.path).join('\n'),
+                'utf8',
+                error => {
+                    if (error) {
+                        console.error("Couldn't save folders.txt", error)
+                    }
+                }
+            )
+        } else {
+            setTimeout(
+                saveFolders,
+                minSaveTime - (Date.now() - lastSaveTime) + 5
+            )
+        }
+    }
+
     function searchFolder(folder) {
         for (let i = 0; i < folder.files.length; i++) {
             checkSearchDisplay(folder.files[i])
@@ -329,6 +352,8 @@ let addSavedFolder
 
         folders.splice(index, 1)
         folderList.removeChild(folderList.children[index])
+
+        saveFolders()
     }
 
     function addFolder(folderPath) {
@@ -491,6 +516,8 @@ let addSavedFolder
         }
 
         folderList.appendChild(element)
+
+        saveFolders()
     }
 
     function toggleSaved(folderPath) {
@@ -573,6 +600,26 @@ let addSavedFolder
             }
         )
     })
+
+    fs.readFile(
+        path.join(app.getPath('userData'), 'folders.txt'),
+        'utf8',
+        (error, content) => {
+            if (error) {
+                return console.error("Couldn't load folders.txt", error)
+            }
+
+            try {
+                let folders = content.split('\n')
+
+                for (let i = 0; i < folders.length; i++) {
+                    addFolder(folders[i])
+                }
+            } catch (error) {
+                console.error("Couldn't parse folders.txt", error)
+            }
+        }
+    )
 }
 
 //Window UI
