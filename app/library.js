@@ -49,8 +49,33 @@ const search = {
 }
 
 const userOptions = {
-    savedFolders: [],
+    add: (name, value) => {
+        if (
+            typeof name !== 'string' ||
+            name.length === 0 ||
+            userOptions._keysToSave.includes(name)
+        ) {
+            return false
+        }
 
+        userOptions[name] = value
+        userOptions._keysToSave.push(name)
+    },
+    change: (name, value) => {
+        if (typeof name !== 'string' || name.length === 0) {
+            return false
+        }
+
+        if (userOptions._keysToSave.includes(name)) {
+            userOptions[name] = value
+        } else {
+            userOptions.add(name, value)
+        }
+
+        userOptions.save()
+    },
+
+    _keysToSave: [],
     _lastSaveTime: 0,
     _minSaveTime: 500,
     save: (force = false) => {
@@ -60,11 +85,21 @@ const userOptions = {
         ) {
             userOptions._lastSaveTime = Date.now()
 
+            let data = {}
+            for (
+                let keyIndex = 0;
+                keyIndex < userOptions._keysToSave.length;
+                keyIndex++
+            ) {
+                data[userOptions._keysToSave[keyIndex]] =
+                    userOptions[userOptions._keysToSave[keyIndex]]
+            }
+
+            data = JSON.stringify(data)
+
             fs.writeFile(
                 path.join(app.getPath('userData'), 'userOptions.json'),
-                JSON.stringify({
-                    savedFolders: userOptions.savedFolders
-                }),
+                data,
                 'utf8',
                 error => {
                     if (error) {
@@ -84,17 +119,16 @@ const userOptions = {
         }
     }
 }
-
-function isValidImage(filePath) {
-    return validImageExtensions.includes(path.extname(filePath).toLowerCase())
-}
+const onUserOptionsLoad = []
 
 let thisWindow
 
 let checkSearchDisplay
 let removeSearchDisplay
 
-let setSize
+function isValidImage(filePath) {
+    return validImageExtensions.includes(path.extname(filePath).toLowerCase())
+}
 
 //Search UI
 {
@@ -221,33 +255,13 @@ let addSavedFolder
 
 //Folder UI
 {
+    userOptions.add('folders', [])
+    userOptions.add('savedFolders', [])
+
     const folderList = document.getElementById('active-folders')
     const savedFolderList = document.getElementById('saved-folders')
 
     const addFolderButton = document.getElementById('add-folder')
-
-    const minSaveTime = 1000
-    let lastSaveTime = 0
-
-    function saveFolders() {
-        if (Date.now() - lastSaveTime > minSaveTime) {
-            fs.writeFile(
-                path.join(app.getPath('userData'), 'folders.txt'),
-                folders.map(folder => folder.path).join('\n'),
-                'utf8',
-                error => {
-                    if (error) {
-                        console.error("Couldn't save folders.txt", error)
-                    }
-                }
-            )
-        } else {
-            setTimeout(
-                saveFolders,
-                minSaveTime - (Date.now() - lastSaveTime) + 5
-            )
-        }
-    }
 
     function searchFolder(folder) {
         for (let i = 0; i < folder.files.length; i++) {
@@ -353,10 +367,10 @@ let addSavedFolder
         folders.splice(index, 1)
         folderList.removeChild(folderList.children[index])
 
-        saveFolders()
+        userOptions.change('folders', folders.map(folder => folder.path))
     }
 
-    function addFolder(folderPath) {
+    function addFolder(folderPath, save = true) {
         if (!path.isAbsolute(folderPath)) {
             return false
         }
@@ -517,7 +531,36 @@ let addSavedFolder
 
         folderList.appendChild(element)
 
-        saveFolders()
+        if (save) {
+            userOptions.change('folders', folders.map(folder => folder.path))
+        }
+    }
+
+    function getSavedFolderElement(folderPath) {
+        let element = document.createElement('div')
+        element.className = 'saved'
+
+        element.appendChild(document.createElement('button'))
+        element.firstChild.addEventListener(
+            'click',
+            toggleSaved.bind(null, folderPath)
+        )
+        element.firstChild.className = 'save'
+        element.firstChild.title = 'Un-save ' + folderPath
+
+        element.appendChild(document.createElement('span'))
+        element.lastChild.textContent = path.basename(folderPath)
+        element.lastChild.title = folderPath
+
+        element.appendChild(document.createElement('button'))
+        element.lastChild.addEventListener(
+            'click',
+            addFolder.bind(null, folderPath)
+        )
+        element.lastChild.textContent = '+'
+        element.lastChild.title = 'Add ' + folderPath
+
+        return element
     }
 
     function toggleSaved(folderPath) {
@@ -539,30 +582,7 @@ let addSavedFolder
         } else {
             userOptions.savedFolders.push(folderPath)
 
-            let element = document.createElement('div')
-            element.className = 'saved'
-
-            element.appendChild(document.createElement('button'))
-            element.firstChild.addEventListener(
-                'click',
-                toggleSaved.bind(null, folderPath)
-            )
-            element.firstChild.className = 'save'
-            element.firstChild.title = 'Un-save ' + folderPath
-
-            element.appendChild(document.createElement('span'))
-            element.lastChild.textContent = path.basename(folderPath)
-            element.lastChild.title = folderPath
-
-            element.appendChild(document.createElement('button'))
-            element.lastChild.addEventListener(
-                'click',
-                addFolder.bind(null, folderPath)
-            )
-            element.lastChild.textContent = '+'
-            element.lastChild.title = 'Add ' + folderPath
-
-            savedFolderList.appendChild(element)
+            savedFolderList.appendChild(getSavedFolderElement(folderPath))
 
             for (let i = 0; i < folders.length; i++) {
                 if (folders[i].path === folderPath) {
@@ -572,12 +592,6 @@ let addSavedFolder
         }
 
         userOptions.save()
-    }
-
-    addSavedFolder = folderPath => {
-        if (!userOptions.savedFolders.includes(folderPath)) {
-            toggleSaved(folderPath)
-        }
     }
 
     addFolderButton.addEventListener('click', () => {
@@ -594,32 +608,63 @@ let addSavedFolder
                     return false
                 }
 
-                for (let i = 0; i < paths.length; i++) {
-                    addFolder(paths[i])
+                for (let pathIndex = 0; pathIndex < paths.length; pathIndex++) {
+                    addFolder(paths[pathIndex])
                 }
             }
         )
     })
 
-    fs.readFile(
-        path.join(app.getPath('userData'), 'folders.txt'),
-        'utf8',
-        (error, content) => {
-            if (error) {
-                return console.error("Couldn't load folders.txt", error)
-            }
+    onUserOptionsLoad.push(() => {
+        if (!Array.isArray(userOptions.folders)) {
+            userOptions.folders = []
+        }
+        if (!Array.isArray(userOptions.savedFolders)) {
+            userOptions.savedFolders = []
+        }
 
-            try {
-                let folders = content.split('\n')
+        //Remove all non-absolute paths
+        userOptions.folders = userOptions.folders.filter(folderPath =>
+            path.isAbsolute(folderPath)
+        )
 
-                for (let i = 0; i < folders.length; i++) {
-                    addFolder(folders[i])
+        userOptions.savedFolders = userOptions.savedFolders.filter(
+            savedFolderPath => path.isAbsolute(savedFolderPath)
+        )
+
+        for (
+            let folderIndex = 0;
+            folderIndex < userOptions.folders.length;
+            folderIndex++
+        ) {
+            addFolder(userOptions.folders[folderIndex], false)
+        }
+
+        for (
+            let savedFolderIndex = 0;
+            savedFolderIndex < userOptions.savedFolders.length;
+            savedFolderIndex++
+        ) {
+            savedFolderList.appendChild(
+                getSavedFolderElement(
+                    userOptions.savedFolders[savedFolderIndex]
+                )
+            )
+
+            for (
+                let folderIndex = 0;
+                folderIndex < folders.length;
+                folderIndex++
+            ) {
+                if (
+                    folders[folderIndex].path ===
+                    userOptions.savedFolders[folderIndex]
+                ) {
+                    folderList.children[folderIndex].className = 'saved'
                 }
-            } catch (error) {
-                console.error("Couldn't parse folders.txt", error)
             }
         }
-    )
+    })
 }
 
 //Window UI
@@ -725,13 +770,31 @@ fs.readFile(
         try {
             let data = JSON.parse(content)
 
-            if (Array.isArray(data.savedFolders)) {
-                for (let i = 0; i < data.savedFolders.length; i++) {
-                    addSavedFolder(data.savedFolders[i])
+            for (
+                let keyIndex = 0;
+                keyIndex < userOptions._keysToSave.length;
+                keyIndex++
+            ) {
+                if (data.hasOwnProperty(userOptions._keysToSave[keyIndex])) {
+                    userOptions[userOptions._keysToSave[keyIndex]] =
+                        data[userOptions._keysToSave[keyIndex]]
+                }
+            }
+
+            for (let i = 0; i < onUserOptionsLoad.length; i++) {
+                if (typeof onUserOptionsLoad[i] === 'function') {
+                    try {
+                        onUserOptionsLoad[i]()
+                    } catch (error) {
+                        console.error(
+                            "Couldn't call user option load function",
+                            error
+                        )
+                    }
                 }
             }
         } catch (error) {
-            console.error("Couldn't parse userOptionss.json", error)
+            console.error("Couldn't parse userOptions.json", error)
         }
     }
 )
