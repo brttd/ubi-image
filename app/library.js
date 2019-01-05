@@ -1075,7 +1075,7 @@ function isValidImage(filePath) {
         })
     }
 
-    thisWindow = BrowserWindow.getFocusedWindow()
+    thisWindow = remote.getCurrentWindow()
 
     if (thisWindow) {
         setupMaximize()
