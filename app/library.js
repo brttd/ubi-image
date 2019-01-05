@@ -595,14 +595,14 @@ function isValidImage(filePath) {
     userOptions.add('folders', [])
     userOptions.add('savedFolders', [])
 
+    const foldersElement = document.getElementById('folders')
+
     const folderList = document.getElementById('active-folders')
     const savedFolderList = document.getElementById('saved-folders')
 
     const addFolderButton = document.getElementById('add-folder')
-
     const showFoldersButton = document.getElementById('show-folders')
 
-    const foldersElement = document.getElementById('folders')
     const altDrag = document.getElementById('alt-drag')
 
     userOptions.add('showFolders', true)
@@ -715,6 +715,8 @@ function isValidImage(filePath) {
         if (index === -1) {
             return false
         }
+
+        folders[index].removed = true
 
         for (let i = 0; i < folders[index].files.length; i++) {
             removeSearchDisplay(folders[index].files[i])
@@ -881,6 +883,8 @@ function isValidImage(filePath) {
             name: path.basename(folderPath),
             path: folderPath,
 
+            remove: removeFolder.bind(null, folderPath),
+
             files: []
         }
 
@@ -897,7 +901,17 @@ function isValidImage(filePath) {
         )
 
         folder.watcher.on('close', event => {
-            console.log('Watcher closed!', event)
+            if (folder.removed !== true) {
+                alert(
+                    'There was a problem with the folder "' +
+                        folder.name +
+                        '"!\nIt has been removed.'
+                )
+
+                console.error(event)
+
+                removeFolder(folderPath)
+            }
         })
         folder.watcher.on('error', error => {
             console.error('Watcher error!', error)
@@ -921,10 +935,7 @@ function isValidImage(filePath) {
         element.lastChild.title = folderPath
 
         element.appendChild(document.createElement('button'))
-        element.lastChild.addEventListener(
-            'click',
-            removeFolder.bind(null, folderPath)
-        )
+        element.lastChild.addEventListener('click', folder.remove)
         element.lastChild.textContent = '−'
         element.lastChild.title = 'Remove ' + folderPath
 
