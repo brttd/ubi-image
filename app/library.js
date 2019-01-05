@@ -728,8 +728,12 @@ function isValidImage(filePath) {
         userOptions.change('folders', folders.map(folder => folder.path))
     }
 
-    function addFolder(folderPath, save = true) {
+    function addFolder(folderPath, callback, save = true) {
         if (!path.isAbsolute(folderPath)) {
+            if (typeof callback === 'function') {
+                callback(false)
+            }
+
             return false
         }
 
@@ -737,6 +741,10 @@ function isValidImage(filePath) {
         let childFolders = []
         for (let i = 0; i < folders.length; i++) {
             if (folders[i].path === folderPath) {
+                if (typeof callback === 'function') {
+                    callback(false)
+                }
+
                 return false
             } else if (folderPath.startsWith(folders[i].path)) {
                 parentFolder = folders[i]
@@ -771,7 +779,11 @@ function isValidImage(filePath) {
                     if (buttonIndex === 0) {
                         removeFolder(parentFolder.path)
 
-                        addFolder(folderPath)
+                        addFolder(folderPath, callback)
+                    } else {
+                        if (typeof callback === 'function') {
+                            callback(false)
+                        }
                     }
                 }
             )
@@ -780,6 +792,53 @@ function isValidImage(filePath) {
         }
 
         if (childFolders.length !== 0) {
+            let dialogMessage = ''
+            let dialogDetail = ''
+
+            let maxListCount = 5
+
+            if (childFolders.length === 1) {
+                dialogMessage =
+                    'Existing folder "' +
+                    childFolders[0].name +
+                    '" is a sub-folder of "' +
+                    path.basename(folderPath) +
+                    '".'
+
+                dialogDetail =
+                    'Do you want to remove "' +
+                    childFolders[0].name +
+                    '" and replace it with "' +
+                    path.basename(folderPath) +
+                    '"?'
+            } else {
+                let listedFolders = childFolders.slice(0, maxListCount - 1)
+
+                let folderNames = listedFolders
+                    .map(folder => '"' + folder.name + '"')
+                    .join(', ')
+
+                dialogMessage = 'Existing folders ' + folderNames + ', and '
+
+                if (childFolders.length === maxListCount) {
+                    dialogMessage +=
+                        ' "' + childFolders[maxListCount - 1].name + '"'
+                } else {
+                    dialogMessage +=
+                        (childFolders.length - maxListCount + 1).toString() +
+                        ' others'
+                }
+                dialogMessage +=
+                    ' are sub-folders of "' + path.basename(folderPath) + '".'
+
+                dialogDetail =
+                    'Do you want to remove the ' +
+                    childFolders.length.toString() +
+                    ' sub-folders and replace them with "' +
+                    path.basename(folderPath) +
+                    '"?'
+            }
+
             dialog.showMessageBox(
                 thisWindow,
                 {
@@ -791,26 +850,8 @@ function isValidImage(filePath) {
                             ? '"' + childFolders[0].name + '"'
                             : 'sub-directories') +
                         '?',
-                    message:
-                        'Existing folder' +
-                        (childFolders.length === 1 ? ' ' : 's ') +
-                        childFolders
-                            .map(folder => '"' + folder.name + '"')
-                            .join(', ') +
-                        (childFolders.length === 1
-                            ? ' is a sub-directory'
-                            : ' are sub-directories') +
-                        ' of "' +
-                        path.basename(folderPath) +
-                        '".',
-                    detail:
-                        'Do you want to remove ' +
-                        (childFolders.length === 1
-                            ? '"' + childFolders[0].name + '"'
-                            : 'them') +
-                        ' and replace with "' +
-                        path.basename(folderPath) +
-                        '"?',
+                    message: dialogMessage,
+                    detail: dialogDetail,
 
                     noLink: true,
 
@@ -824,7 +865,11 @@ function isValidImage(filePath) {
                             removeFolder(childFolders[i].path)
                         }
 
-                        addFolder(folderPath)
+                        addFolder(folderPath, callback)
+                    } else {
+                        if (typeof callback === 'function') {
+                            callback(false)
+                        }
                     }
                 }
             )
@@ -891,6 +936,10 @@ function isValidImage(filePath) {
 
         if (save) {
             userOptions.change('folders', folders.map(folder => folder.path))
+        }
+
+        if (typeof callback === 'function') {
+            callback(true)
         }
     }
 
@@ -982,9 +1031,15 @@ function isValidImage(filePath) {
                     return false
                 }
 
-                for (let pathIndex = 0; pathIndex < paths.length; pathIndex++) {
-                    addFolder(paths[pathIndex])
+                let addNext = () => {
+                    if (paths.length === 0) {
+                        return false
+                    }
+
+                    addFolder(paths.pop(), addNext)
                 }
+
+                addNext()
             }
         )
     })
@@ -1022,7 +1077,7 @@ function isValidImage(filePath) {
             folderIndex < userOptions.folders.length;
             folderIndex++
         ) {
-            addFolder(userOptions.folders[folderIndex], false)
+            addFolder(userOptions.folders[folderIndex], null, false)
         }
 
         for (
