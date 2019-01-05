@@ -127,6 +127,8 @@ let thisWindow
 let checkSearchDisplay
 let removeSearchDisplay
 
+let onResize
+
 function isValidImage(filePath) {
     return validImageExtensions.includes(path.extname(filePath).toLowerCase())
 }
@@ -328,7 +330,7 @@ function isValidImage(filePath) {
     }
 
     let frameRequested = false
-    function onResize() {
+    onResize = function() {
         if (!frameRequested) {
             frameRequested = true
             updateResultsSize()
@@ -594,6 +596,13 @@ function isValidImage(filePath) {
     const savedFolderList = document.getElementById('saved-folders')
 
     const addFolderButton = document.getElementById('add-folder')
+
+    const showFoldersButton = document.getElementById('show-folders')
+
+    const foldersElement = document.getElementById('folders')
+    const altDrag = document.getElementById('alt-drag')
+
+    userOptions.add('showFolders', true)
 
     function searchFolder(folder) {
         for (let i = 0; i < folder.files.length; i++) {
@@ -940,6 +949,22 @@ function isValidImage(filePath) {
         userOptions.save()
     }
 
+    function updateFoldersDisplay() {
+        if (userOptions.showFolders) {
+            foldersElement.style.display = 'none'
+            altDrag.style.display = ''
+
+            showFoldersButton.textContent = '🗀'
+        } else {
+            foldersElement.style.display = ''
+            altDrag.style.display = 'none'
+
+            showFoldersButton.textContent = '🖿'
+        }
+
+        onResize()
+    }
+
     addFolderButton.addEventListener('click', () => {
         dialog.showOpenDialog(
             thisWindow,
@@ -961,6 +986,12 @@ function isValidImage(filePath) {
         )
     })
 
+    showFoldersButton.addEventListener('click', () => {
+        userOptions.change('showFolders', !userOptions.showFolders)
+
+        updateFoldersDisplay()
+    })
+
     onUserOptionsLoad.push(() => {
         if (!Array.isArray(userOptions.folders)) {
             userOptions.folders = []
@@ -968,6 +999,11 @@ function isValidImage(filePath) {
         if (!Array.isArray(userOptions.savedFolders)) {
             userOptions.savedFolders = []
         }
+
+        if (typeof userOptions.showFolders !== 'boolean') {
+            userOptions.showFolders = true
+        }
+        updateFoldersDisplay()
 
         //Remove all non-absolute paths
         userOptions.folders = userOptions.folders.filter(folderPath =>

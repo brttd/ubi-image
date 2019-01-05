@@ -155,6 +155,9 @@
 
                 border-bottom: 1px solid hsl(216, 6%, 16%);
             }
+            #search .drag {
+                width: 4ch;
+            }
             input {
                 margin: 3px;
                 padding: 3px 6px;
@@ -189,7 +192,7 @@
             #search button {
                 flex: 0 0 auto;
 
-                min-width: 27px;
+                min-width: 29px;
 
                 margin: 3px;
                 padding: 3px 7px;
@@ -201,14 +204,14 @@
                 border: none;
                 outline: none;
             }
+            #search button.toggle {
+                margin: 3px 0;
+            }
             #search button:hover {
                 background: hsl(216, 5%, 20%);
             }
-            #search button:hover {
+            #search button:active {
                 background: hsl(0, 40%, 30%);
-            }
-            button#show-options {
-                margin-left: -3px;
             }
 
             #results {
@@ -267,8 +270,10 @@
         <div class="vertical">
             <div id="search" class="vertical">
                 <div class="horizontal">
+                    <div id="alt-drag" class="drag"></div>
+                    <button class="toggle" id="show-folders">🖿</button>
                     <input id="search-box" type="text" placeholder="search" title="Search">
-                    <button id="show-options">⛭</button>
+                    <button class="toggle"  id="show-options">⛭</button>
                     <button class="window" id="minimize-window">🗕</button>
                     <button class="window" id="maximize-window">🗖</button>
                     <button class="window" id="close-window">🗙</button>
