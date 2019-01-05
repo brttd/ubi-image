@@ -47,7 +47,13 @@ const search = {
     terms: [],
     ignore: [],
 
-    results: []
+    results: [],
+
+    update: () => {
+        for (let i = 0; i < folders.length; i++) {
+            folders[i].updateSearch()
+        }
+    }
 }
 
 const userOptions = {
@@ -457,7 +463,7 @@ function isValidImage(filePath) {
             }
         }
 
-        folders.forEach(folder => folder.updateSearch())
+        search.update()
     })
     ignoreInput.addEventListener('input', () => {
         search.ignore = ignoreInput.value.toLowerCase().split(' ')
@@ -469,7 +475,7 @@ function isValidImage(filePath) {
             }
         }
 
-        folders.forEach(folder => folder.updateSearch())
+        search.update()
     })
 
     showOptionsButton.addEventListener('click', () => {
