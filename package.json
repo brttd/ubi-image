@@ -3,6 +3,7 @@
     "author": "Brett Doyle",
     "version": "0.1",
     "dependencies": {
+        "async": "^2.6.1",
         "electron": "^2.0.8"
     }
 }
