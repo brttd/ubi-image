@@ -44,6 +44,7 @@ const folders = [
 
 const search = {
     terms: [],
+    ignore: [],
 
     results: []
 }
@@ -132,19 +133,66 @@ function isValidImage(filePath) {
 
 //Search UI
 {
+    //Change to be actual result count, instead of row count
+    userOptions.add('maxSearchResults', 80)
+    userOptions.add('searchResultsSize', 200)
+
     const searchInput = document.getElementById('search-box')
+    const ignoreInput = document.getElementById('ignore-box')
+    const maxResultsInput = document.getElementById('max-results')
+    const resultSizeInput = document.getElementById('result-size')
+    const showOptionsButton = document.getElementById('show-options')
+
+    const searchOptions = document.getElementById('search-options')
+    searchOptions.style.display = 'none'
 
     const resultsBox = document.getElementById('results')
 
-    const oldResultNodes = []
+    const rowNodes = []
+    const resultNodes = []
 
-    let maxSize = 150
+    const resultsViewBox = {
+        top: 0,
+        height: 0
+    }
+
+    //Gutter size between results (and edge)
+    const resultSpacing = 6
+    //Height of file name
+    const resultAddHeight = 20 + resultSpacing
+
+    let optionsShown = false
+
+    //width/height cannot be smaller than this
+    const resultMinRatio = 1
+    let columnCount = 5
+    let columnWidth = 0
+    let maxRowHeight = 0
+
+    let rows = []
+
+    let updateRequested = false
+
+    function updateResultsSize() {
+        frameRequested = false
+        columnCount = Math.max(
+            1,
+            Math.round(resultsBox.clientWidth / userOptions.searchResultsSize)
+        )
+
+        columnWidth = ~~(resultsBox.clientWidth / columnCount) - resultSpacing
+
+        maxRowHeight = columnWidth / resultMinRatio
+
+        resultsViewBox.top = resultsBox.scrollTop
+        resultsViewBox.height = resultsBox.clientHeight
+    }
 
     function getResultNode(file) {
         let elem
 
-        if (oldResultNodes.length > 0) {
-            elem = oldResultNodes.pop()
+        if (resultNodes.length > 0) {
+            elem = resultNodes.pop()
         } else {
             elem = document.createElement('div')
             elem.appendChild(document.createElement('img'))
@@ -154,18 +202,17 @@ function isValidImage(filePath) {
         elem.firstChild.src = file.path
         elem.firstChild.title = file.path
 
-        if (file.width / file.height > 1) {
-            elem.firstChild.style.width = elem.lastChild.style.width =
-                maxSize + 'px'
+        let width = columnWidth
+        let height = width * (file.height / file.width)
+        if (height > maxRowHeight) {
+            height = maxRowHeight
 
-            elem.firstChild.style.height =
-                file.height * (maxSize / file.width) + 'px'
-        } else {
-            elem.firstChild.style.height = maxSize + 'px'
-
-            elem.firstChild.style.width = elem.lastChild.style.width =
-                file.width * (maxSize / file.height) + 'px'
+            width = height * (file.width / file.height)
         }
+
+        elem.firstChild.style.width = width + 'px'
+        elem.firstChild.style.height = height + 'px'
+        elem.lastChild.style.width = columnWidth + 'px'
 
         elem.lastChild.textContent = file.name
 
@@ -174,84 +221,365 @@ function isValidImage(filePath) {
         return elem
     }
 
-    removeSearchDisplay = function(file) {
-        let inde = search.results.indexOf(file)
-        if (inde !== -1) {
-            search.results.splice(inde, 1)
+    function getRowHeight(rowIndex) {
+        let rowHeight = 0
 
-            oldResultNodes.push(resultsBox.children[inde])
-
-            resultsBox.removeChild(resultsBox.children[inde])
+        for (
+            let resultIndex = rowIndex * columnCount;
+            resultIndex < rowIndex * columnCount + columnCount &&
+            resultIndex < search.results.length;
+            resultIndex++
+        ) {
+            let height =
+                columnWidth *
+                (search.results[resultIndex].height /
+                    search.results[resultIndex].width)
+            rowHeight = Math.max(
+                height < maxRowHeight ? height : maxRowHeight,
+                rowHeight
+            )
         }
+
+        return rowHeight + resultAddHeight
+    }
+
+    function populateRow(rowIndex) {
+        for (
+            let resultIndex = rowIndex * columnCount;
+            resultIndex < rowIndex * columnCount + columnCount &&
+            resultIndex < search.results.length;
+            resultIndex++
+        ) {
+            resultsBox.children[rowIndex].appendChild(
+                getResultNode(search.results[resultIndex])
+            )
+        }
+    }
+
+    function populateVisibleRows() {
+        let totalHeight = 0
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            if (rows[rowIndex].needsRebuild) {
+                while (resultsBox.children[rowIndex].childElementCount > 0) {
+                    resultNodes.push(resultsBox.children[rowIndex].children[0])
+                    resultsBox.children[rowIndex].removeChild(
+                        resultsBox.children[rowIndex].firstChild
+                    )
+                }
+
+                if (
+                    totalHeight >= resultsViewBox.top - maxRowHeight &&
+                    totalHeight <=
+                        resultsViewBox.top +
+                            resultsViewBox.height +
+                            maxRowHeight
+                ) {
+                    rows[rowIndex].needsRebuild = false
+                    populateRow(rowIndex)
+                }
+
+                totalHeight += rows[rowIndex].height
+            }
+        }
+    }
+
+    function makeRows(rowCount) {
+        while (resultsBox.childElementCount > rowCount) {
+            resultsBox.removeChild(resultsBox.lastChild)
+        }
+        while (resultsBox.childElementCount < rowCount) {
+            resultsBox.appendChild(document.createElement('div'))
+            resultsBox.lastChild.className = 'row'
+        }
+    }
+
+    function rebuildRows() {
+        updateRequested = false
+        rows = []
+
+        let rowCount = Math.min(
+            Math.ceil(search.results.length / columnCount),
+            userOptions.maxSearchResults
+        )
+
+        makeRows(rowCount)
+
+        for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            rows.push({
+                height: getRowHeight(rowIndex),
+
+                needsRebuild: true,
+
+                node: resultsBox.children[rowIndex]
+            })
+
+            resultsBox.children[rowIndex].style.height =
+                rows[rowIndex].height + 'px'
+        }
+
+        populateVisibleRows()
+    }
+
+    function updateRows() {
+        if (!updateRequested) {
+            updateRequested = true
+            requestAnimationFrame(rebuildRows)
+        }
+    }
+
+    let frameRequested = false
+    function onResize() {
+        if (!frameRequested) {
+            frameRequested = true
+            updateResultsSize()
+            rebuildRows()
+        }
+    }
+
+    function changeMaxRowCount(max) {
+        userOptions.change('maxSearchResults', max)
+
+        let rowCount = Math.min(
+            Math.ceil(search.results.length / columnCount),
+            userOptions.maxSearchResults
+        )
+
+        makeRows(rowCount)
+
+        if (rowCount > rows.length) {
+            for (let rowIndex = rows.length; rowIndex < rowCount; rowIndex++) {
+                rows.push({
+                    height: getRowHeight(rowIndex),
+
+                    needsRebuild: true,
+
+                    node: resultsBox.children[rowIndex]
+                })
+
+                resultsBox.children[rowIndex].style.height =
+                    rows[rowIndex].height + 'px'
+            }
+        } else if (rowCount < rows.length) {
+            rows.length = rowCount
+        }
+
+        populateVisibleRows()
+    }
+
+    removeSearchDisplay = function(file) {
+        let index = search.results.indexOf(file)
+        if (index !== -1) {
+            search.results.splice(index, 1)
+        }
+
+        updateRows()
     }
 
     checkSearchDisplay = function(file) {
         removeSearchDisplay(file)
 
-        let index = -1
-        let missed = 0
+        for (let i = 0; i < search.ignore.length; i++) {
+            if (file.nameLower.indexOf(search.ignore[i]) !== -1) {
+                return false
+            }
 
-        for (let i = 0; i < search.terms.length; i++) {
-            let tIndex = file.name.indexOf(search.terms[i])
-            if (tIndex === -1) {
-                missed += search.terms[i].length
-            } else {
-                index += tIndex + 1
+            for (let j = 0; j < file.foldersLower.length; j++) {
+                if (file.foldersLower[j].indexOf(search.ignore[i]) !== -1) {
+                    return false
+                }
             }
         }
 
-        if (index !== -1) {
-            index += missed
+        let index = 0
+        let missed = 0
+        let missCount = 0
 
-            file.searchScore = index
+        for (let i = 0; i < search.terms.length; i++) {
+            let tempIndex = file.nameLower.indexOf(search.terms[i])
+
+            if (tempIndex !== -1) {
+                //If the term was in the filename, increase the filescore by the index of the term
+                index +=
+                    10 / (search.terms[i].length + 5) +
+                    tempIndex * 0.02 * (1 + i)
+            } else {
+                for (let j = 0; j < file.foldersLower.length; j++) {
+                    tempIndex = file.foldersLower[j].indexOf(search.terms[i])
+
+                    if (tempIndex !== -1) {
+                        index +=
+                            10 / (search.terms[i].length + 5) +
+                            tempIndex * 0.02 * (1 + i)
+                        break
+                    }
+                }
+
+                //If the search term was not in the filename, nor file folders
+                if (tempIndex === -1) {
+                    //Then increase the missed score, and count
+                    missed += search.terms[i].length / 3 + 1
+                    missCount += 1
+                }
+            }
+        }
+
+        if (missCount <= Math.ceil(search.terms.length / 3)) {
+            file.searchScore = index + missed * 3
 
             let resultIndex = search.results.findIndex(
-                item => item.searchScore >= index
+                item => item.searchScore >= file.searchScore
             )
-
-            let resultElement = getResultNode(file)
 
             if (resultIndex === -1) {
                 search.results.push(file)
-
-                resultsBox.appendChild(resultElement)
             } else {
                 search.results.splice(resultIndex, 0, file)
-
-                resultsBox.insertBefore(
-                    resultElement,
-                    resultsBox.children[resultIndex]
-                )
             }
         }
-    }
 
-    setSize = function(size) {
-        maxSize = size
-
-        for (let element of resultsBox.children) {
-            if (element.data.width / element.data.height > 1) {
-                element.firstChild.style.width = element.lastChild.style.width =
-                    maxSize + 'px'
-
-                element.firstChild.style.height =
-                    element.data.height * (maxSize / element.data.width) + 'px'
-            } else {
-                element.firstChild.style.height = maxSize + 'px'
-
-                element.firstChild.style.width = element.lastChild.style.width =
-                    element.data.width * (maxSize / element.data.height) + 'px'
-            }
-        }
+        updateRows()
     }
 
     searchInput.addEventListener('input', () => {
-        search.terms = searchInput.value.split(' ')
+        search.terms = searchInput.value.toLowerCase().split(' ')
+
+        //Remove all empty ignore terms
+        for (let i = search.terms.length - 1; i >= 0; i--) {
+            if (search.terms[i].trim() === '') {
+                search.terms.splice(i, 1)
+            }
+        }
+
         folders.forEach(folder => folder.updateSearch())
     })
-}
+    ignoreInput.addEventListener('input', () => {
+        search.ignore = ignoreInput.value.toLowerCase().split(' ')
 
-let addSavedFolder
+        //Remove all empty ignore terms
+        for (let i = search.ignore.length - 1; i >= 0; i--) {
+            if (search.ignore[i].trim() === '') {
+                search.ignore.splice(i, 1)
+            }
+        }
+
+        folders.forEach(folder => folder.updateSearch())
+    })
+
+    showOptionsButton.addEventListener('click', () => {
+        optionsShown = !optionsShown
+
+        if (optionsShown) {
+            searchOptions.style.display = ''
+        } else {
+            searchOptions.style.display = 'none'
+        }
+    })
+
+    maxResultsInput.addEventListener('input', () => {
+        let value = parseFloat(maxResultsInput.value)
+        if (value !== ~~value) {
+            maxResultsInput.value = value = ~~value
+        }
+
+        if (isFinite(value) && value > 0 && value <= 1000) {
+            changeMaxRowCount(value)
+        }
+    })
+    maxResultsInput.addEventListener('blur', () => {
+        let value = parseFloat(maxResultsInput.value)
+
+        if (!isFinite(value)) {
+            value = userOptions.maxSearchResults
+        }
+        if (value !== ~~value) {
+            value = ~~value
+        }
+        if (value <= 0) {
+            value = 1
+        } else if (value > 1000) {
+            value = 1000
+        }
+
+        maxResultsInput.value = value
+        if (value !== userOptions.maxSearchResults) {
+            changeMaxRowCount(value)
+        }
+    })
+
+    resultSizeInput.addEventListener('input', () => {
+        let value = parseFloat(resultSizeInput.value)
+        if (value !== ~~value) {
+            resultSizeInput.value = value = ~~value
+        }
+
+        if (isFinite(value) && value >= 10 && value <= 1000) {
+            userOptions.change('searchResultsSize', value)
+            onResize()
+        }
+    })
+    resultSizeInput.addEventListener('blur', () => {
+        let value = parseFloat(resultSizeInput.value)
+
+        if (!isFinite(value)) {
+            value = userOptions.searchResultsSize
+        }
+        if (value !== ~~value) {
+            value = ~~value
+        }
+        if (value <= 9) {
+            value = 10
+        } else if (value > 1000) {
+            value = 1000
+        }
+
+        resultSizeInput.value = value
+        if (value !== userOptions.searchResultsSize) {
+            userOptions.change('searchResultsSize', value)
+            onResize()
+        }
+    })
+
+    updateResultsSize()
+
+    window.addEventListener('resize', onResize)
+
+    resultsBox.addEventListener('scroll', () => {
+        resultsViewBox.top = resultsBox.scrollTop
+        populateVisibleRows()
+    })
+
+    onUserOptionsLoad.push(() => {
+        if (
+            typeof userOptions.maxSearchResults !== 'number' ||
+            !isFinite(userOptions.maxSearchResults)
+        ) {
+            userOptions.maxSearchResults = 80
+        } else if (userOptions.maxSearchResults <= 0) {
+            userOptions.maxSearchResults = 1
+        } else if (userOptions.maxSearchResults > 1000) {
+            userOptions.maxSearchResults = 1000
+        }
+        userOptions.maxSearchResults = ~~userOptions.maxSearchResults
+
+        maxResultsInput.value = userOptions.maxSearchResults
+        changeMaxRowCount(userOptions.maxSearchResults)
+
+        if (
+            typeof userOptions.searchResultsSize !== 'number' ||
+            !isFinite(userOptions.searchResultsSize)
+        ) {
+            userOptions.searchResultsSize = 200
+        } else if (userOptions.searchResultsSize < 10) {
+            userOptions.searchResultsSize = 10
+        } else if (userOptions.searchResultsSize > 1000) {
+            userOptions.searchResultsSize = 1000
+        }
+        userOptions.searchResultsSize = ~~userOptions.searchResultsSize
+
+        resultSizeInput.value = userOptions.searchResultsSize
+        onResize()
+    })
+}
 
 //Folder UI
 {
@@ -320,10 +648,24 @@ let addSavedFolder
                                             item,
                                             path.extname(item)
                                         ),
+                                        nameLower:
+                                            path
+                                                .basename(
+                                                    item,
+                                                    path.extname(item)
+                                                )
+                                                .toLowerCase() +
+                                            ' ' +
+                                            path.extname(item).toLowerCase(),
 
                                         path: fullPath,
 
                                         folders: subDirectory.split(path.sep),
+                                        foldersLower: subDirectory
+                                            .split(path.sep)
+                                            .map(folder =>
+                                                folder.toLowerCase()
+                                            ),
 
                                         width: size.width || 0,
                                         height: size.height || 0,
