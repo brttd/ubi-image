@@ -1301,6 +1301,17 @@ function isValidImage(filePath) {
     })
     contextMenu.append(openFolder)
 
+    contextMenu.append(new MenuItem({ type: 'separator' }))
+
+    const updateSearch = new MenuItem({
+        label: 'Refresh Search',
+
+        click: () => {
+            search.update()
+        }
+    })
+    contextMenu.append(updateSearch)
+
     const removeFolders = new MenuItem({
         label: 'Remove All Folders',
 
@@ -1313,7 +1324,6 @@ function isValidImage(filePath) {
     contextMenu.append(removeFolders)
 
     const windowItem = new MenuItem({ role: 'windowMenu' })
-    contextMenu.append(new MenuItem({ type: 'separator' }))
     contextMenu.append(windowItem)
 
     const folderItems = [copyFolderPath, openFolder]
@@ -1408,6 +1418,19 @@ function isValidImage(filePath) {
         } else {
             removeFolders.enabled = false
             removeFolders.visible = false
+        }
+
+        if (
+            searchNode.contains(event.target) ||
+            searchNode === event.target ||
+            resultsNode.contains(event.target) ||
+            resultsNode === event.target
+        ) {
+            updateSearch.enabled = true
+            updateSearch.visible = true
+        } else {
+            updateSearch.enabled = false
+            updateSearch.visible = false
         }
 
         contextMenu.popup({})
