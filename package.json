@@ -1,9 +1,16 @@
 {
     "name": "ubi-image",
     "author": "Brett Doyle",
-    "version": "0.1",
+    "version": "0.1.1",
+    "scripts": {
+        "launch": "electron app",
+        "build": "node build.js"
+    },
     "dependencies": {
         "async": "^2.6.1",
         "electron": "^2.0.8"
+    },
+    "devDependencies": {
+        "electron-packager": "^13.0.1"
     }
 }
