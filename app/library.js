@@ -1014,7 +1014,6 @@ function isValidImage(filePath) {
     const maximizeButton = document.getElementById('maximize-window')
 
     let maximized = false
-    let maximizeTime = 0
 
     document.getElementById('minimize-window').addEventListener('click', () => {
         thisWindow.minimize()
@@ -1023,12 +1022,12 @@ function isValidImage(filePath) {
     maximizeButton.addEventListener('click', () => {
         if (maximized) {
             thisWindow.unmaximize()
+
             maximizeButton.textContent = '🗖'
         } else {
             thisWindow.maximize()
-            maximizeButton.textContent = '🗗'
 
-            maximizeTime = Date.now()
+            maximizeButton.textContent = '🗗'
         }
 
         maximized = !maximized
@@ -1051,54 +1050,24 @@ function isValidImage(filePath) {
         }
 
         let onUnMax = () => {
-            maximized = false
             maximizeButton.textContent = '🗖'
+            maximized = false
         }
 
+        thisWindow.on('resize', onUnMax)
+        thisWindow.on('move', onUnMax)
+
         thisWindow.on('unmaximize', onUnMax)
-        thisWindow.on('resize', () => {
-            if (Date.now() - maximizeTime > 100) {
-                onUnMax()
-            }
-        })
-        thisWindow.on('move', () => {
-            if (Date.now() - maximizeTime > 100) {
-                onUnMax()
-            }
-        })
 
         thisWindow.on('maximize', () => {
-            maximized = true
             maximizeButton.textContent = '🗗'
-
-            maximizeTime = Date.now()
+            maximized = true
         })
     }
 
     thisWindow = remote.getCurrentWindow()
 
-    if (thisWindow) {
-        setupMaximize()
-    } else {
-        window.addEventListener(
-            'focus',
-            () => {
-                thisWindow = BrowserWindow.getFocusedWindow()
-
-                setupMaximize()
-            },
-            { capture: true, once: true }
-        )
-        window.addEventListener(
-            'click',
-            () => {
-                thisWindow = BrowserWindow.getFocusedWindow()
-
-                setupMaximize()
-            },
-            { capture: true, once: true }
-        )
-    }
+    setupMaximize()
 }
 
 fs.readFile(

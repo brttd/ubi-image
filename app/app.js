@@ -8,7 +8,6 @@ const appPath = app.getAppPath()
 app.on('ready', () => {
     let mainWindow = new BrowserWindow({
         frame: false,
-        transparent: true,
         show: false,
 
         icon: path.join(appPath, 'icon.ico'),
