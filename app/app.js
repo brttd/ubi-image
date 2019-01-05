@@ -11,7 +11,7 @@ app.on('ready', () => {
         transparent: true,
         show: false,
 
-        icon: path.join(appPath, 'icon-64.png'),
+        icon: path.join(appPath, 'icon.ico'),
 
         minWidth: 500,
         minHeight: 300
