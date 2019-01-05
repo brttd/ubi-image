@@ -1184,6 +1184,10 @@ function isValidImage(filePath) {
     let imagePath = ''
     let folderPath = ''
 
+    const activeFoldersNode = document.getElementById('active-folders')
+    const searchNode = document.getElementById('search')
+    const resultsNode = document.getElementById('results')
+
     const contextMenu = new Menu()
 
     const editItem = {
@@ -1291,6 +1295,17 @@ function isValidImage(filePath) {
     })
     contextMenu.append(openFolder)
 
+    const removeFolders = new MenuItem({
+        label: 'Remove All Folders',
+
+        click: () => {
+            for (let i = folders.length - 1; i >= 0; i--) {
+                folders[i].remove()
+            }
+        }
+    })
+    contextMenu.append(removeFolders)
+
     const windowItem = new MenuItem({ role: 'windowMenu' })
     contextMenu.append(new MenuItem({ type: 'separator' }))
     contextMenu.append(windowItem)
@@ -1376,6 +1391,17 @@ function isValidImage(filePath) {
                 folderItems[i].enabled = false
                 folderItems[i].visible = false
             }
+        }
+
+        if (
+            activeFoldersNode.contains(event.target) ||
+            event.target === activeFoldersNode
+        ) {
+            removeFolders.enabled = true
+            removeFolders.visible = true
+        } else {
+            removeFolders.enabled = false
+            removeFolders.visible = false
         }
 
         contextMenu.popup({})
