@@ -1,5 +1,6 @@
 const { remote } = require('electron')
-const { dialog, BrowserWindow, app } = remote
+
+const { app, clipboard, dialog, Menu, MenuItem, nativeImage, shell } = remote
 const fs = require('fs')
 const path = require('path')
 const async = require('async')
@@ -1110,6 +1111,209 @@ function isValidImage(filePath) {
     thisWindow = remote.getCurrentWindow()
 
     setupMaximize()
+}
+
+//Context Menu
+{
+    let imagePath = ''
+    let folderPath = ''
+
+    const contextMenu = new Menu()
+
+    const editItem = {
+        cut: new MenuItem({ role: 'cut' }),
+        copy: new MenuItem({ role: 'copy' }),
+        paste: new MenuItem({ role: 'paste' }),
+        selectAll: new MenuItem({ role: 'selectAll' }),
+        delete: new MenuItem({ role: 'delete' })
+    }
+    contextMenu.append(editItem.cut)
+    contextMenu.append(editItem.copy)
+    contextMenu.append(editItem.paste)
+    contextMenu.append(editItem.selectAll)
+    contextMenu.append(editItem.delete)
+
+    const editItems = [
+        editItem.cut,
+        editItem.copy,
+        editItem.paste,
+        editItem.selectAll,
+        editItem.delete
+    ]
+
+    const copyImage = new MenuItem({
+        label: 'Copy Image',
+
+        click: () => {
+            if (imagePath) {
+                let ext = path.extname(imagePath).toLowerCase()
+
+                if (
+                    ext.includes('png') ||
+                    ext.includes('jpg') ||
+                    ext.includes('jpeg')
+                ) {
+                    try {
+                        clipboard.writeImage(
+                            nativeImage.createFromPath(imagePath)
+                        )
+                    } catch (error) {
+                        //todo
+                    }
+                } else {
+                    alert('Only PNG and JPEG images can be copied')
+                }
+            }
+        }
+    })
+    contextMenu.append(copyImage)
+
+    const copyImagePath = new MenuItem({
+        label: 'Copy Image Path',
+
+        click: () => {
+            if (imagePath) {
+                clipboard.writeText(imagePath)
+            }
+        }
+    })
+    contextMenu.append(copyImagePath)
+
+    const openImage = new MenuItem({
+        label: 'Open Image',
+
+        click: () => {
+            if (imagePath) {
+                shell.openItem(imagePath)
+            }
+        }
+    })
+    contextMenu.append(openImage)
+
+    const showImage = new MenuItem({
+        label: 'Show in Folder',
+
+        click: () => {
+            if (imagePath) {
+                shell.showItemInFolder(imagePath)
+            }
+        }
+    })
+    contextMenu.append(showImage)
+
+    const imageItems = [copyImage, copyImagePath, openImage, showImage]
+
+    const copyFolderPath = new MenuItem({
+        label: 'Copy Folder Path',
+
+        click: () => {
+            if (folderPath) {
+                clipboard.writeText(folderPath)
+            }
+        }
+    })
+    contextMenu.append(copyFolderPath)
+
+    const openFolder = new MenuItem({
+        label: 'Open Folder',
+
+        click: () => {
+            if (folderPath) {
+                shell.openItem(folderPath)
+            }
+        }
+    })
+    contextMenu.append(openFolder)
+
+    const windowItem = new MenuItem({ role: 'windowMenu' })
+    contextMenu.append(new MenuItem({ type: 'separator' }))
+    contextMenu.append(windowItem)
+
+    const folderItems = [copyFolderPath, openFolder]
+
+    document.addEventListener('contextmenu', event => {
+        if (event.target.tagName === 'INPUT') {
+            for (let i = 0; i < editItems.length; i++) {
+                editItems[i].enabled = true
+                editItems[i].visible = true
+            }
+
+            //If not text is selected, cut, copy, and delete items need to be disabled
+            if (event.target.selectionStart === event.target.selectionEnd) {
+                editItem.cut.enabled = false
+                editItem.copy.enabled = false
+                editItem.delete.enabled = false
+            }
+        } else {
+            for (let i = 0; i < editItems.length; i++) {
+                editItems[i].enabled = false
+                editItems[i].visible = false
+            }
+        }
+
+        imagePath = ''
+        folderPath = ''
+
+        if (event.target.tagName === 'IMG') {
+            imagePath = event.target.title
+        } else if (
+            event.target.previousElementSibling &&
+            event.target.previousElementSibling.tagName === 'IMG'
+        ) {
+            imagePath = event.target.previousElementSibling.title
+        } else if (
+            event.target.firstChild &&
+            event.target.firstChild.tagName === 'IMG'
+        ) {
+            imagePath = event.target.firstChild.title
+        }
+
+        if (imagePath) {
+            for (let i = 0; i < imageItems.length; i++) {
+                imageItems[i].enabled = true
+                imageItems[i].visible = true
+            }
+        } else {
+            for (let i = 0; i < imageItems.length; i++) {
+                imageItems[i].enabled = false
+                imageItems[i].visible = false
+            }
+        }
+
+        if (event.target.tagName === 'SPAN') {
+            folderPath = event.target.title
+        } else if (
+            event.target.previousElementSibling &&
+            event.target.previousElementSibling.tagName === 'SPAN'
+        ) {
+            folderPath = event.target.previousElementSibling.title
+        } else if (
+            event.target.nextElementSibling &&
+            event.target.nextElementSibling.tagName === 'SPAN'
+        ) {
+            folderPath = event.target.nextElementSibling.title
+        } else if (
+            event.target.firstElementChild &&
+            event.target.firstElementChild.nextElementSibling &&
+            event.target.firstElementChild.nextElementSibling.tagName === 'SPAN'
+        ) {
+            folderPath = event.target.firstElementChild.nextElementSibling.title
+        }
+
+        if (folderPath) {
+            for (let i = 0; i < folderItems.length; i++) {
+                folderItems[i].enabled = true
+                folderItems[i].visible = true
+            }
+        } else {
+            for (let i = 0; i < folderItems.length; i++) {
+                folderItems[i].enabled = false
+                folderItems[i].visible = false
+            }
+        }
+
+        contextMenu.popup({})
+    })
 }
 
 fs.readFile(
