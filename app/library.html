@@ -95,7 +95,7 @@
                 border: 1px solid hsl(225, 7%, 12%);
                 color: hsl(222, 8%, 71%);
             }
-            #folders > span {
+            #folders label {
                 flex: 0 0 auto;
 
                 padding: 3px 6px;
@@ -162,6 +162,8 @@
                 margin: 3px;
                 padding: 3px 6px;
 
+                min-width: 0;
+
                 background: hsl(216, 6%, 16%);
                 border: 1px solid hsl(225, 7%, 12%);
                 color: hsl(222, 8%, 71%);
@@ -170,23 +172,34 @@
             }
 
             #search-options #ignore-box {
-                flex: 1 1 auto;
-                margin: 3px;
+                flex: 1 0 auto;
+                min-width: 10ch;
             }
 
             #search-options {
                 align-items: center;
-
-                margin-right: 134px;
+                flex-wrap: wrap;
             }
-            #search-options * {
+            #search-options .option {
                 flex: 0 0 auto;
 
                 margin: 3px;
+                margin-right: 6px;
+            }
+            #search-options .option.expand {
+                flex: 1 0 auto;
+                display: flex;
+                flex-flow: row nowrap;
+                align-items: center;
+
+                margin: 3px;
+            }
+            #search-options label {
+                flex: 0 0 auto;
+                margin-right: 3px;
             }
             #search-options input {
                 width: 7ch;
-                margin-right: 8px;
             }
 
             #search button {
@@ -242,14 +255,14 @@
 
                 text-align: center;
             }
-            #results div img, #results div span {
+            #results div img, #results div label {
                 display: block;
             }
             #results div img {
                 margin: 0 auto;
                 border: 1px solid hsl(225, 7%, 12%);
             }
-            #results div span {
+            #results div label {
                 overflow: hidden;
                 text-overflow: ellipsis;
 
@@ -264,7 +277,7 @@
             <div class="drag"></div>
             <button id="add-folder">🗁 Add Folder</button>
             <div id="active-folders" class="folder-list"></div>
-            <span>Saved</span>
+            <label>Saved</label>
             <div id="saved-folders" class="folder-list"></div>
         </div>
         <div class="vertical">
@@ -279,9 +292,9 @@
                     <button class="window" id="close-window">🗙</button>
                 </div>
                 <div id="search-options" class="horizontal">
-                    <label for="max-results">max rows</label><input id="max-results" type="number" min="1" max="1000" step="1">
-                    <label for="result-size">size</label><input id="result-size" type="number" min="10" max="1000" step="10">
-                    <label for="ignore-box">ignore</label><input id="ignore-box" type="text" placeholder="ignore" title="Ignore">
+                    <div class="option"><label for="max-results">max rows</label><input id="max-results" type="number" min="1" max="1000" step="1"></div>
+                    <div class="option"><label for="result-size">size</label><input id="result-size" type="number" min="10" max="1000" step="10"></div>
+                    <div class="option expand"><label for="ignore-box">ignore</label><input id="ignore-box" type="text"></div>
                 </div>
             </div>
             <div id="results"></div>

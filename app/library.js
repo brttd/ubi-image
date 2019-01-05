@@ -198,7 +198,7 @@ function isValidImage(filePath) {
         } else {
             elem = document.createElement('div')
             elem.appendChild(document.createElement('img'))
-            elem.appendChild(document.createElement('span'))
+            elem.appendChild(document.createElement('label'))
         }
 
         elem.firstChild.src = file.path
@@ -476,8 +476,10 @@ function isValidImage(filePath) {
 
         if (optionsShown) {
             searchOptions.style.display = ''
+            showOptionsButton.textContent = '⚙'
         } else {
             searchOptions.style.display = 'none'
+            showOptionsButton.textContent = '⛭'
         }
     })
 
