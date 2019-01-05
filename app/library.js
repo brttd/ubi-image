@@ -429,7 +429,7 @@ function isValidImage(filePath) {
             }
         }
 
-        if (missCount <= Math.ceil(search.terms.length / 3)) {
+        if (missCount <= Math.round(search.terms.length / 3)) {
             file.searchScore = index + missed * 3
 
             let resultIndex = search.results.findIndex(
