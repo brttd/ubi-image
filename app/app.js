@@ -11,13 +11,14 @@ app.on('ready', () => {
         transparent: true,
         show: false,
 
+        icon: path.join(appPath, 'icon-64.png'),
+
         minWidth: 500,
         minHeight: 300
     })
 
     mainWindow.on('ready-to-show', () => {
         mainWindow.show()
-        //mainWindow.webContents.openDevTools()
     })
 
     mainWindow.loadURL(
