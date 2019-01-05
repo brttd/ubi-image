@@ -12,8 +12,12 @@ app.on('ready', () => {
 
         icon: path.join(appPath, 'icon.ico'),
 
-        minWidth: 500,
-        minHeight: 300
+        minWidth: 300,
+        minHeight: 200
+    })
+
+    mainWindow.on('closed', () => {
+        app.quit()
     })
 
     mainWindow.on('ready-to-show', () => {
