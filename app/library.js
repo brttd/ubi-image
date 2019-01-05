@@ -378,6 +378,10 @@ function isValidImage(filePath) {
     checkSearchDisplay = function(file) {
         removeSearchDisplay(file)
 
+        if (search.terms.length === 0) {
+            return false
+        }
+
         for (let i = 0; i < search.ignore.length; i++) {
             if (file.nameLower.indexOf(search.ignore[i]) !== -1) {
                 return false
