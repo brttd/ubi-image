@@ -205,13 +205,28 @@
             #search-options label {
                 flex: 0 0 auto;
                 margin-right: 3px;
+
+                vertical-align: middle;
+
+                user-select: none;
             }
             #search-options input {
                 width: 7ch;
+
+                vertical-align: middle;
+            }
+            #search-options input[type=checkbox] {
+                width: auto;
+                margin-right: 6px;
+            }
+            #search-options input[type=checkbox] + label {
+                margin-right: 0;
             }
 
             #search button {
                 flex: 0 0 auto;
+
+                user-select: none;
 
                 min-width: 29px;
 
@@ -274,6 +289,8 @@
             #results div label {
                 overflow: hidden;
                 text-overflow: ellipsis;
+
+                user-select: none;
 
                 white-space: nowrap;
 
