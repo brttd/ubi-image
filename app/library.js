@@ -1310,7 +1310,22 @@ function isValidImage(filePath) {
 {
     const maximizeButton = document.getElementById('maximize-window')
 
+    const alwaysOnTopButton = document.getElementById('always-top')
+
+    const thisWindow = remote.getCurrentWindow()
+
     let maximized = false
+
+    alwaysOnTopButton.addEventListener('click', event => {
+        if (thisWindow.isAlwaysOnTop()) {
+            thisWindow.setAlwaysOnTop(false)
+            alwaysOnTopButton.textContent = 'a'
+        } else {
+            thisWindow.setAlwaysOnTop(true)
+
+            alwaysOnTopButton.textContent = 'A'
+        }
+    })
 
     document.getElementById('minimize-window').addEventListener('click', () => {
         thisWindow.minimize()
@@ -1361,8 +1376,6 @@ function isValidImage(filePath) {
             maximized = true
         })
     }
-
-    thisWindow = remote.getCurrentWindow()
 
     setupMaximize()
 }
