@@ -266,6 +266,8 @@
                 display: flex;
                 flex-direction: row;
                 justify-content: flex-start;
+
+                margin: 0 auto;
             }
             #results .row div {
                 display: inline-block;
@@ -285,6 +287,9 @@
             #results div img {
                 margin: 0 auto;
                 border: 1px solid hsl(225, 7%, 12%);
+
+                max-width: 100%;
+                max-height: calc(100% - 20px);
             }
             #results div label {
                 overflow: hidden;
