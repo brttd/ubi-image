@@ -1449,6 +1449,8 @@ function isValidImage(filePath) {
             Math.min(window.innerHeight, bounds.width) *
                 (userOptions.previewMaxSize / 100) +
             'px'
+
+        centerImagePreview()
     }
 
     let lastHideTime = 0
