@@ -1184,6 +1184,245 @@ function isValidImage(filePath) {
     setupMaximize()
 }
 
+//Hover UI
+{
+    userOptions.add('invertControl', false)
+    userOptions.add('previewOpacity', 1)
+    userOptions.add('previewMaxSize', 85)
+
+    const resultsBox = document.getElementById('results')
+
+    const previewElement = document.getElementById('hover-preview')
+    const imagePreview = document.getElementById('image-preview')
+
+    const invertControlInput = document.getElementById('invert-preview-control')
+    const previewOpacityInput = document.getElementById('preview-opacity')
+    const previewMaxSizeInput = document.getElementById('preview-max-size')
+
+    let currentResult = null
+    let needsUpdate = true
+    let needsResize = true
+
+    let position = {
+        minTop: 0,
+        top: 0,
+        maxTop: 0,
+
+        minLeft: 0,
+        left: 0,
+        maxLeft: 0
+    }
+
+    updatePosition = () => {
+        needsUpdate = true
+
+        previewElement.style.top =
+            Math.max(position.minTop, Math.min(position.top, position.maxTop)) +
+            'px'
+
+        previewElement.style.left =
+            Math.max(
+                position.minLeft,
+                Math.min(position.left, position.maxLeft)
+            ) + 'px'
+    }
+
+    function centerImagePreview() {
+        let bounds = previewElement.getBoundingClientRect()
+
+        position.minTop = bounds.height / 2
+        position.maxTop = window.innerHeight - bounds.height / 2
+
+        position.minLeft = bounds.width / 2
+        position.maxLeft = window.innerWidth - bounds.width / 2
+
+        if (needsUpdate) {
+            updatePosition()
+        }
+    }
+
+    function updateMaxSize() {
+        needsResize = true
+        let bounds = resultsBox.getBoundingClientRect()
+
+        previewElement.style.maxWidth =
+            Math.min(window.innerWidth, bounds.height) *
+                (userOptions.previewMaxSize / 100) +
+            'px'
+        previewElement.style.maxHeight =
+            Math.min(window.innerHeight, bounds.width) *
+                (userOptions.previewMaxSize / 100) +
+            'px'
+    }
+
+    let lastHideTime = 0
+    let hideDelay = 100
+
+    function hidePreview() {
+        lastHideTime = Date.now()
+
+        setTimeout(() => {
+            if (!currentResult && Date.now() - hideDelay >= lastHideTime - 50) {
+                previewElement.style.display = 'none'
+            }
+        }, hideDelay)
+    }
+
+    updatePreviewDisplay = (ctrlKey = false) => {
+        if (currentResult && ctrlKey !== userOptions.invertControl) {
+            previewElement.style.display = ''
+        } else {
+            previewElement.style.display = 'none'
+        }
+    }
+
+    resultsBox.addEventListener('mousemove', event => {
+        position.top = event.clientY
+        position.left = event.clientX
+
+        if (needsUpdate) {
+            needsUpdate = false
+            requestAnimationFrame(updatePosition)
+        }
+    })
+
+    resultsBox.addEventListener(
+        'mouseover',
+        event => {
+            if (
+                event.target.tagName === 'IMG' ||
+                event.target.tagName === 'LABEL'
+            ) {
+                currentResult = event.target.parentNode
+            } else if (
+                event.target.firstElementChild &&
+                event.target.firstElementChild.tagName === 'IMG'
+            ) {
+                currentResult = event.target
+            } else {
+                return false
+            }
+
+            updatePreviewDisplay(event.ctrlKey)
+
+            imagePreview.src = currentResult.firstElementChild.src
+
+            requestAnimationFrame(centerImagePreview)
+        },
+        true
+    )
+
+    resultsBox.addEventListener(
+        'mouseout',
+        event => {
+            if (
+                event.target.className === 'row' ||
+                event.target.tagName === 'IMG' ||
+                event.target === currentResult ||
+                event.target === resultsBox
+            ) {
+                currentResult = null
+                hidePreview()
+            }
+        },
+        true
+    )
+
+    invertControlInput.addEventListener('change', () => {
+        userOptions.change('invertControl', invertControlInput.checked)
+    })
+    previewOpacityInput.addEventListener('input', () => {
+        let value = parseFloat(previewOpacityInput.value)
+
+        if (
+            typeof value === 'number' &&
+            isFinite(value) &&
+            value >= 0.1 &&
+            value <= 1
+        ) {
+            value = Math.round(value * 100) / 100
+
+            userOptions.change('previewMaxSize', value)
+
+            previewElement.style.opacity = userOptions.previewOpacity
+        }
+    })
+    previewOpacityInput.addEventListener('blur', () => {
+        previewOpacityInput.value = userOptions.previewOpacity
+    })
+    previewMaxSizeInput.addEventListener('input', () => {
+        let value = parseFloat(previewMaxSizeInput.value)
+
+        if (
+            typeof value === 'number' &&
+            isFinite(value) &&
+            value >= 5 &&
+            value <= 200
+        ) {
+            value = Math.round(value)
+
+            userOptions.change('previewMaxSize', value)
+
+            if (needsResize) {
+                needsResize = false
+                requestAnimationFrame(updateMaxSize)
+            }
+        }
+    })
+    previewMaxSizeInput.addEventListener('blur', () => {
+        previewMaxSizeInput.value = userOptions.previewMaxSize
+    })
+
+    window.addEventListener('resize', () => {
+        if (needsResize) {
+            needsResize = false
+            requestAnimationFrame(updateMaxSize)
+        }
+    })
+
+    window.addEventListener('keydown', event => {
+        updatePreviewDisplay(event.ctrlKey)
+    })
+    window.addEventListener('keyup', event => {
+        updatePreviewDisplay(event.ctrlKey)
+    })
+
+    window.addEventListener('blur', () => {
+        hidePreview()
+    })
+
+    onUserOptionsLoad.push(() => {
+        if (typeof userOptions.invertControl !== 'boolean') {
+            userOptions.invertControl = false
+        }
+        if (
+            typeof userOptions.previewOpacity !== 'number' ||
+            !isFinite(userOptions.previewOpacity) ||
+            userOptions.previewOpacity < 0.1 ||
+            userOptions.previewOpacity > 1
+        ) {
+            userOptions.previewOpacity = 1
+        }
+        if (
+            typeof userOptions.previewMaxSize !== 'number' ||
+            !isFinite(userOptions.previewMaxSize) ||
+            userOptions.previewMaxSize < 5 ||
+            userOptions.previewMaxSize > 200
+        ) {
+            userOptions.previewMaxSize = 85
+        }
+
+        invertControlInput.checked = userOptions.invertControl
+
+        previewOpacityInput.value = userOptions.previewOpacity
+        previewElement.style.opacity = userOptions.previewOpacity
+
+        previewMaxSizeInput.value = userOptions.previewMaxSize
+
+        requestAnimationFrame(updateMaxSize)
+    })
+}
+
 //Context Menu
 {
     let imagePath = ''
