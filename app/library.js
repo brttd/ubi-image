@@ -489,12 +489,22 @@ function isValidImage(filePath) {
             resultsBox.appendChild(getRowNode())
         }
 
-        while (resultsBox.childElementCount > endIndex + maxExtraRows) {
+        while (
+            resultsBox.childElementCount >
+            Math.min(
+                endIndex + maxExtraRows,
+                Math.ceil(search.results.length / columnCount) + 1
+            )
+        ) {
             rowNodes.push(resultsBox.lastChild)
             resultsBox.removeChild(resultsBox.lastChild)
         }
 
-        for (let i = visibleRows.start; i <= visibleRows.end; i++) {
+        for (
+            let i = visibleRows.start;
+            i <= visibleRows.end && i < resultsBox.childElementCount;
+            i++
+        ) {
             if (i < startIndex || i > endIndex) {
                 for (
                     let j = 0;
@@ -511,9 +521,12 @@ function isValidImage(filePath) {
 
             //Remove all extra children in row
             for (
-                let j = Math.min(
-                    columnCount,
-                    search.results.length - resultIndex + 1
+                let j = Math.max(
+                    0,
+                    Math.min(
+                        columnCount,
+                        search.results.length - resultIndex + 1
+                    )
                 );
                 j < resultsBox.children[i].childElementCount;
                 j++
