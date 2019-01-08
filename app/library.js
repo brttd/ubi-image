@@ -600,6 +600,7 @@ function isValidImage(filePath) {
 {
     userOptions.add('folders', [])
     userOptions.add('savedFolders', [])
+    userOptions.add('showFolders', true)
 
     const foldersElement = document.getElementById('folders')
 
@@ -610,8 +611,6 @@ function isValidImage(filePath) {
     const showFoldersButton = document.getElementById('show-folders')
 
     const altDrag = document.getElementById('alt-drag')
-
-    userOptions.add('showFolders', true)
 
     function searchFolder(folder) {
         for (let i = 0; i < folder.files.length; i++) {

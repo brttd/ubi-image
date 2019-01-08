@@ -61,6 +61,15 @@
                 flex: 1 1 auto;
             }
 
+            hr {
+                flex: 1 0 100% !important;
+
+                height: 0;
+                margin: 0;
+
+                border: none;
+            }
+
             .drag {
                 display: block;
 
@@ -284,16 +293,16 @@
                 <div class="horizontal">
                     <div id="alt-drag" class="drag"></div>
                     <button class="toggle" id="show-folders">🖿</button>
-                    <input id="search-box" type="text" placeholder="search" title="Search">
+                    <input id="search-box" type="text" placeholder="Search" title="Search">
                     <button class="toggle"  id="show-options">⛭</button>
                     <button class="window" id="minimize-window">🗕</button>
                     <button class="window" id="maximize-window">🗖</button>
                     <button class="window" id="close-window">🗙</button>
                 </div>
                 <div id="search-options" class="horizontal">
-                    <div class="option"><label for="max-results">max rows</label><input id="max-results" type="number" min="1" max="1000" step="1"></div>
-                    <div class="option"><label for="result-size">size</label><input id="result-size" type="number" min="10" max="1000" step="10"></div>
-                    <div class="option expand"><label for="ignore-box">ignore</label><input id="ignore-box" type="text"></div>
+                    <div class="option"><label for="max-results">Max. Rows</label><input id="max-results" type="number" min="1" max="1000" step="1"></div>
+                    <div class="option"><label for="result-size">Size</label><input id="result-size" type="number" min="10" max="1000" step="10"></div>
+                    <div class="option expand"><label for="ignore-box">Ignore</label><input id="ignore-box" type="text"></div><hr>
                 </div>
             </div>
             <div id="results"></div>
