@@ -157,206 +157,177 @@ function isValidImage(filePath) {
 
     const resultsBox = document.getElementById('results')
 
-    const rowNodes = []
-    const resultNodes = []
-
-    const resultsViewBox = {
-        top: 0,
-        height: 0
-    }
-
-    //Gutter size between results (and edge)
-    const resultSpacing = 6
-    //Height of file name
-    const resultAddHeight = 20 + resultSpacing
-
     let optionsShown = false
 
-    //width/height cannot be smaller than this
-    const resultMinRatio = 1
-    let columnCount = 5
-    let columnWidth = 0
-    let maxRowHeight = 0
+    {
+        /*
+        const rowNodes = []
+        const resultNodes = []
 
-    let rows = []
-
-    let updateRequested = false
-
-    function updateResultsSize() {
-        frameRequested = false
-        columnCount = Math.max(
-            1,
-            Math.round(resultsBox.clientWidth / userOptions.searchResultsSize)
-        )
-
-        columnWidth = ~~(resultsBox.clientWidth / columnCount) - resultSpacing
-
-        maxRowHeight = columnWidth / resultMinRatio
-
-        resultsViewBox.top = resultsBox.scrollTop
-        resultsViewBox.height = resultsBox.clientHeight
-    }
-
-    function getResultNode(file) {
-        let elem
-
-        if (resultNodes.length > 0) {
-            elem = resultNodes.pop()
-        } else {
-            elem = document.createElement('div')
-            elem.appendChild(document.createElement('img'))
-            elem.appendChild(document.createElement('label'))
+        const resultsViewBox = {
+            top: 0,
+            height: 0
         }
 
-        elem.firstChild.src = file.path
-        elem.firstChild.title = file.path
+        //Gutter size between results (and edge)
+        const resultSpacing = 6
+        //Height of file name
+        const resultAddHeight = 20 + resultSpacing
 
-        let width = columnWidth
-        let height = width * (file.height / file.width)
-        if (height > maxRowHeight) {
-            height = maxRowHeight
+        let optionsShown = false
 
-            width = height * (file.width / file.height)
-        }
-
-        elem.firstChild.style.width = width + 'px'
-        elem.firstChild.style.height = height + 'px'
-        elem.lastChild.style.width = columnWidth + 'px'
-
-        elem.lastChild.textContent = file.name
-
-        elem.data = file
-
-        return elem
-    }
-
-    function getRowHeight(rowIndex) {
+        //width/height cannot be smaller than this
+        const resultMinRatio = 1
+        let columnCount = 5
+        let columnWidth = 0
         let rowHeight = 0
+        let maxRowHeight = 0
 
-        for (
-            let resultIndex = rowIndex * columnCount;
-            resultIndex < rowIndex * columnCount + columnCount &&
-            resultIndex < search.results.length;
-            resultIndex++
-        ) {
-            let height =
-                columnWidth *
-                (search.results[resultIndex].height /
-                    search.results[resultIndex].width)
-            rowHeight = Math.max(
-                height < maxRowHeight ? height : maxRowHeight,
-                rowHeight
+        let rows = []
+
+        let updateRequested = false
+
+        function updateResultsSize() {
+            frameRequested = false
+            columnCount = Math.max(
+                1,
+                Math.round(
+                    resultsBox.clientWidth / userOptions.searchResultsSize
+                )
             )
+
+            columnWidth =
+                ~~(resultsBox.clientWidth / columnCount) - resultSpacing
+
+            rowHeight = columnWidth + resultAddHeight
+
+            maxRowHeight = columnWidth / resultMinRatio
+
+            resultsViewBox.top = resultsBox.scrollTop
+            resultsViewBox.height = resultsBox.clientHeight
         }
 
-        return rowHeight + resultAddHeight
-    }
+        function getResultNode(file) {
+            let elem
 
-    function populateRow(rowIndex) {
-        for (
-            let resultIndex = rowIndex * columnCount;
-            resultIndex < rowIndex * columnCount + columnCount &&
-            resultIndex < search.results.length;
-            resultIndex++
-        ) {
-            resultsBox.children[rowIndex].appendChild(
-                getResultNode(search.results[resultIndex])
-            )
+            if (resultNodes.length > 0) {
+                elem = resultNodes.pop()
+            } else {
+                elem = document.createElement('div')
+                elem.appendChild(document.createElement('img'))
+                elem.appendChild(document.createElement('label'))
+            }
+
+            elem.firstChild.src = file.path
+            elem.firstChild.title = file.path
+
+            let width = columnWidth
+            let height = width * (file.height / file.width)
+            if (height > maxRowHeight) {
+                height = maxRowHeight
+
+                width = height * (file.width / file.height)
+            }
+
+            elem.firstChild.style.width = width + 'px'
+            elem.firstChild.style.height = height + 'px'
+            elem.lastChild.style.width = columnWidth + 'px'
+
+            elem.lastChild.textContent = file.name
+
+            elem.data = file
+
+            return elem
         }
-    }
 
-    function populateVisibleRows() {
-        let totalHeight = 0
-        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-            if (rows[rowIndex].needsRebuild) {
-                while (resultsBox.children[rowIndex].childElementCount > 0) {
-                    resultNodes.push(resultsBox.children[rowIndex].children[0])
-                    resultsBox.children[rowIndex].removeChild(
-                        resultsBox.children[rowIndex].firstChild
-                    )
-                }
+        function getRowHeight(rowIndex) {
+            let rowHeight = 0
 
-                if (
-                    totalHeight >= resultsViewBox.top - maxRowHeight &&
-                    totalHeight <=
-                        resultsViewBox.top +
-                            resultsViewBox.height +
-                            maxRowHeight
-                ) {
-                    rows[rowIndex].needsRebuild = false
-                    populateRow(rowIndex)
-                }
+            for (
+                let resultIndex = rowIndex * columnCount;
+                resultIndex < rowIndex * columnCount + columnCount &&
+                resultIndex < search.results.length;
+                resultIndex++
+            ) {
+                let height =
+                    columnWidth *
+                    (search.results[resultIndex].height /
+                        search.results[resultIndex].width)
+                rowHeight = Math.max(
+                    height < maxRowHeight ? height : maxRowHeight,
+                    rowHeight
+                )
+            }
 
-                totalHeight += rows[rowIndex].height
+            return rowHeight + resultAddHeight
+        }
+
+        function populateRow(rowIndex) {
+            for (
+                let resultIndex = rowIndex * columnCount;
+                resultIndex < rowIndex * columnCount + columnCount &&
+                resultIndex < search.results.length;
+                resultIndex++
+            ) {
+                resultsBox.children[rowIndex].appendChild(
+                    getResultNode(search.results[resultIndex])
+                )
             }
         }
-    }
 
-    function makeRows(rowCount) {
-        while (resultsBox.childElementCount > rowCount) {
-            resultsBox.removeChild(resultsBox.lastChild)
-        }
-        while (resultsBox.childElementCount < rowCount) {
-            resultsBox.appendChild(document.createElement('div'))
-            resultsBox.lastChild.className = 'row'
-        }
-    }
+        function populateVisibleRows() {
+            let totalHeight = 0
+            for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                if (rows[rowIndex].needsRebuild) {
+                    while (
+                        resultsBox.children[rowIndex].childElementCount > 0
+                    ) {
+                        resultNodes.push(
+                            resultsBox.children[rowIndex].children[0]
+                        )
+                        resultsBox.children[rowIndex].removeChild(
+                            resultsBox.children[rowIndex].firstChild
+                        )
+                    }
 
-    function rebuildRows() {
-        updateRequested = false
-        rows = []
+                    if (
+                        totalHeight >= resultsViewBox.top - maxRowHeight &&
+                        totalHeight <=
+                            resultsViewBox.top +
+                                resultsViewBox.height +
+                                maxRowHeight
+                    ) {
+                        rows[rowIndex].needsRebuild = false
+                        populateRow(rowIndex)
+                    }
 
-        let rowCount = Math.min(
-            Math.ceil(search.results.length / columnCount),
-            userOptions.maxSearchResults
-        )
-
-        makeRows(rowCount)
-
-        for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            rows.push({
-                height: getRowHeight(rowIndex),
-
-                needsRebuild: true,
-
-                node: resultsBox.children[rowIndex]
-            })
-
-            resultsBox.children[rowIndex].style.height =
-                rows[rowIndex].height + 'px'
+                    totalHeight += rows[rowIndex].height
+                }
+            }
         }
 
-        populateVisibleRows()
-    }
-
-    function updateRows() {
-        if (!updateRequested) {
-            updateRequested = true
-            requestAnimationFrame(rebuildRows)
+        function makeRows(rowCount) {
+            while (resultsBox.childElementCount > rowCount) {
+                resultsBox.removeChild(resultsBox.lastChild)
+            }
+            while (resultsBox.childElementCount < rowCount) {
+                resultsBox.appendChild(document.createElement('div'))
+                resultsBox.lastChild.className = 'row'
+            }
         }
-    }
 
-    let frameRequested = false
-    onResize = function() {
-        if (!frameRequested) {
-            frameRequested = true
-            updateResultsSize()
-            rebuildRows()
-        }
-    }
+        function rebuildRows() {
+            updateRequested = false
+            rows = []
 
-    function changeMaxRowCount(max) {
-        userOptions.change('maxSearchResults', max)
+            let rowCount = Math.min(
+                Math.ceil(search.results.length / columnCount),
+                userOptions.maxSearchResults
+            )
 
-        let rowCount = Math.min(
-            Math.ceil(search.results.length / columnCount),
-            userOptions.maxSearchResults
-        )
+            makeRows(rowCount)
 
-        makeRows(rowCount)
-
-        if (rowCount > rows.length) {
-            for (let rowIndex = rows.length; rowIndex < rowCount; rowIndex++) {
+            for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 rows.push({
                     height: getRowHeight(rowIndex),
 
@@ -368,20 +339,278 @@ function isValidImage(filePath) {
                 resultsBox.children[rowIndex].style.height =
                     rows[rowIndex].height + 'px'
             }
-        } else if (rowCount < rows.length) {
-            rows.length = rowCount
+
+            populateVisibleRows()
         }
 
-        populateVisibleRows()
+        function updateRows() {
+            if (!updateRequested) {
+                updateRequested = true
+                requestAnimationFrame(rebuildRows)
+            }
+        }
+
+        let frameRequested = false
+        onResize = function() {
+            if (!frameRequested) {
+                frameRequested = true
+                updateResultsSize()
+                rebuildRows()
+            }
+        }
+
+        function changeMaxRowCount(max) {
+            userOptions.change('maxSearchResults', max)
+
+            let rowCount = Math.min(
+                Math.ceil(search.results.length / columnCount),
+                userOptions.maxSearchResults
+            )
+
+            makeRows(rowCount)
+
+            if (rowCount > rows.length) {
+                for (
+                    let rowIndex = rows.length;
+                    rowIndex < rowCount;
+                    rowIndex++
+                ) {
+                    rows.push({
+                        height: getRowHeight(rowIndex),
+
+                        needsRebuild: true,
+
+                        node: resultsBox.children[rowIndex]
+                    })
+
+                    resultsBox.children[rowIndex].style.height =
+                        rows[rowIndex].height + 'px'
+                }
+            } else if (rowCount < rows.length) {
+                rows.length = rowCount
+            }
+
+            populateVisibleRows()
+        }
+
+        */
+    }
+
+    const resultNodes = []
+    const rowNodes = []
+
+    const userViewBox = {
+        top: 0,
+        height: 0
+    }
+
+    //Gutter size between results (and edge)
+    const imageSpacing = 6
+    const imageLabelHeight = 20 + imageSpacing
+
+    const extraVisibleRows = 1.5
+
+    const maxExtraRows = 15
+
+    const visibleRows = {
+        start: 0,
+        end: 0
+    }
+
+    let columnCount = 0
+    let columnWidth = 0
+    let rowHeight = 0
+
+    let needsUpdate = true
+    let needsSizeUpdate = true
+
+    function getNode(file) {
+        if (resultNodes.length > 0) {
+            return setNode(resultNodes.pop(), file)
+        }
+
+        let elem = document.createElement('div')
+        elem.appendChild(document.createElement('img'))
+        elem.appendChild(document.createElement('label'))
+
+        return setNode(elem, file)
+    }
+    function getRowNode() {
+        let elem
+
+        if (rowNodes.length > 0) {
+            elem = rowNodes.pop()
+        } else {
+            elem = document.createElement('div')
+            elem.className = 'row'
+        }
+
+        elem.style.height = rowHeight + 'px'
+        elem.style.width = columnWidth * columnCount + 'px'
+
+        return elem
+    }
+
+    function setNode(node, file) {
+        node.firstChild.src = file.path
+        node.firstChild.title = file.path
+
+        node.lastChild.textContent = file.name
+
+        node.style.width = columnWidth + 'px'
+        node.lastChild.style.width = columnWidth + 'px'
+
+        node.style.display = ''
+
+        return node
+    }
+
+    function updateVisibleRows() {
+        needsUpdate = true
+
+        let startIndex = Math.max(
+            0,
+            Math.floor(
+                (userViewBox.top - rowHeight * extraVisibleRows) / rowHeight
+            )
+        )
+
+        let endIndex = Math.ceil(
+            Math.min(
+                (userViewBox.top +
+                    userViewBox.height +
+                    rowHeight * extraVisibleRows) /
+                    rowHeight,
+                search.results.length / columnCount
+            )
+        )
+
+        while (endIndex >= resultsBox.childElementCount) {
+            resultsBox.appendChild(getRowNode())
+        }
+
+        while (resultsBox.childElementCount > endIndex + maxExtraRows) {
+            rowNodes.push(resultsBox.lastChild)
+            resultsBox.removeChild(resultsBox.lastChild)
+        }
+
+        for (let i = visibleRows.start; i <= visibleRows.end; i++) {
+            if (i < startIndex || i > endIndex) {
+                for (
+                    let j = 0;
+                    j < resultsBox.children[i].childElementCount;
+                    j++
+                ) {
+                    resultsBox.children[i].children[j].style.display = 'none'
+                }
+            }
+        }
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            let resultIndex = columnCount * i
+
+            //Remove all extra children in row
+            for (
+                let j = Math.min(
+                    columnCount,
+                    search.results.length - resultIndex + 1
+                );
+                j < resultsBox.children[i].childElementCount;
+                j++
+            ) {
+                resultsBox.children[i].children[j].style.display = 'none'
+            }
+
+            //Update all current results in row
+            for (
+                let j = 0;
+                j < resultsBox.children[i].childElementCount &&
+                resultIndex + j < search.results.length;
+                j++
+            ) {
+                setNode(
+                    resultsBox.children[i].children[j],
+                    search.results[resultIndex + j]
+                )
+            }
+
+            //Add all other results, if there are more results than current nodes
+            for (
+                let j = resultsBox.children[i].childElementCount;
+                j < columnCount && resultIndex + j < search.results.length;
+                j++
+            ) {
+                resultsBox.children[i].appendChild(
+                    getNode(search.results[resultIndex + j])
+                )
+            }
+        }
+
+        visibleRows.start = startIndex
+        visibleRows.end = endIndex
+    }
+
+    function updateRowSizes() {
+        for (let i = 0; i < resultsBox.childElementCount; i++) {
+            resultsBox.children[i].style.height = rowHeight + 'px'
+            resultsBox.children[i].style.width =
+                columnWidth * columnCount + 'px'
+
+            for (let j = 0; j < resultsBox.children[i].childElementCount; j++) {
+                resultsBox.children[i].children[j].style.width =
+                    columnWidth + 'px'
+                resultsBox.children[i].children[j].lastChild.style.width =
+                    columnWidth + 'px'
+            }
+        }
+    }
+
+    function updateRows() {
+        if (needsUpdate) {
+            needsUpdate = false
+            requestAnimationFrame(updateVisibleRows)
+        }
+    }
+
+    function updateResultsSize() {
+        needsSizeUpdate = true
+
+        let oldColumnCount = columnCount
+
+        columnCount = Math.max(
+            1,
+            Math.round(resultsBox.clientWidth / userOptions.searchResultsSize)
+        )
+
+        columnWidth = ~~(resultsBox.clientWidth / columnCount) - imageSpacing
+
+        rowHeight = columnWidth + imageLabelHeight
+
+        userViewBox.top = resultsBox.scrollTop
+        userViewBox.height = resultsBox.offsetHeight
+
+        if (oldColumnCount !== columnCount) {
+            updateRows()
+        }
+
+        updateRowSizes()
+    }
+
+    onResize = () => {
+        if (needsSizeUpdate) {
+            needsSizeUpdate = false
+            requestAnimationFrame(updateResultsSize)
+        }
     }
 
     removeSearchDisplay = function(file) {
         let index = search.results.indexOf(file)
+
         if (index !== -1) {
             search.results.splice(index, 1)
-        }
 
-        updateRows()
+            updateRows()
+        }
     }
 
     checkSearchDisplay = function(file) {
@@ -448,9 +677,9 @@ function isValidImage(filePath) {
             } else {
                 search.results.splice(resultIndex, 0, file)
             }
-        }
 
-        updateRows()
+            updateRows()
+        }
     }
 
     searchInput.addEventListener('input', () => {
@@ -490,37 +719,6 @@ function isValidImage(filePath) {
         }
     })
 
-    maxResultsInput.addEventListener('input', () => {
-        let value = parseFloat(maxResultsInput.value)
-        if (value !== ~~value) {
-            maxResultsInput.value = value = ~~value
-        }
-
-        if (isFinite(value) && value > 0 && value <= 1000) {
-            changeMaxRowCount(value)
-        }
-    })
-    maxResultsInput.addEventListener('blur', () => {
-        let value = parseFloat(maxResultsInput.value)
-
-        if (!isFinite(value)) {
-            value = userOptions.maxSearchResults
-        }
-        if (value !== ~~value) {
-            value = ~~value
-        }
-        if (value <= 0) {
-            value = 1
-        } else if (value > 1000) {
-            value = 1000
-        }
-
-        maxResultsInput.value = value
-        if (value !== userOptions.maxSearchResults) {
-            changeMaxRowCount(value)
-        }
-    })
-
     resultSizeInput.addEventListener('input', () => {
         let value = parseFloat(resultSizeInput.value)
         if (value !== ~~value) {
@@ -554,31 +752,15 @@ function isValidImage(filePath) {
         }
     })
 
-    updateResultsSize()
-
     window.addEventListener('resize', onResize)
 
     resultsBox.addEventListener('scroll', () => {
-        resultsViewBox.top = resultsBox.scrollTop
-        populateVisibleRows()
+        userViewBox.top = resultsBox.scrollTop
+
+        updateRows()
     })
 
     onUserOptionsLoad.push(() => {
-        if (
-            typeof userOptions.maxSearchResults !== 'number' ||
-            !isFinite(userOptions.maxSearchResults)
-        ) {
-            userOptions.maxSearchResults = 80
-        } else if (userOptions.maxSearchResults <= 0) {
-            userOptions.maxSearchResults = 1
-        } else if (userOptions.maxSearchResults > 1000) {
-            userOptions.maxSearchResults = 1000
-        }
-        userOptions.maxSearchResults = ~~userOptions.maxSearchResults
-
-        maxResultsInput.value = userOptions.maxSearchResults
-        changeMaxRowCount(userOptions.maxSearchResults)
-
         if (
             typeof userOptions.searchResultsSize !== 'number' ||
             !isFinite(userOptions.searchResultsSize)
@@ -592,6 +774,7 @@ function isValidImage(filePath) {
         userOptions.searchResultsSize = ~~userOptions.searchResultsSize
 
         resultSizeInput.value = userOptions.searchResultsSize
+
         onResize()
     })
 }
