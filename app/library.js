@@ -462,9 +462,9 @@ function isValidImage(filePath) {
         }
     }
 
-    function getNode(file, rowIndex) {
+    function getNode(resultIndex, rowIndex) {
         if (resultNodes.length > 0) {
-            return setNode(resultNodes.pop(), file)
+            return setNode(resultNodes.pop(), resultIndex)
         }
 
         let elem = document.createElement('div')
@@ -475,7 +475,7 @@ function isValidImage(filePath) {
 
         elem.firstChild.addEventListener('load', onImageLoad)
 
-        return setNode(elem, file, rowIndex)
+        return setNode(elem, resultIndex, rowIndex)
     }
     function getRowNode() {
         let elem
@@ -514,26 +514,36 @@ function isValidImage(filePath) {
         }
     }
 
-    function setNode(node, file, rowIndex = -1) {
-        if (node.firstChild.title === file.path) {
+    function setNode(node, resultIndex, rowIndex = -1) {
+        if (node.firstChild.title === search.results[resultIndex].path) {
             return node
         }
 
-        node.firstChild.title = file.path
+        node.firstChild.title = search.results[resultIndex].path
 
-        node.lastChild.textContent = file.name
+        node.lastChild.textContent = search.results[resultIndex].name
 
         node.style.width = columnWidth + 'px'
         node.lastChild.style.width = columnWidth + 'px'
 
-        if (file.height / file.width > 1) {
+        if (
+            search.results[resultIndex].height /
+                search.results[resultIndex].width >
+            1
+        ) {
             node.firstChild.style.width =
-                imageSize * (file.width / file.height) + 'px'
+                imageSize *
+                    (search.results[resultIndex].width /
+                        search.results[resultIndex].height) +
+                'px'
             node.firstChild.style.height = imageSize + 'px'
         } else {
             node.firstChild.style.width = imageSize + 'px'
             node.firstChild.style.height =
-                imageSize * (file.height / file.width) + 'px'
+                imageSize *
+                    (search.results[resultIndex].height /
+                        search.results[resultIndex].width) +
+                'px'
         }
 
         node.firstChild.style.opacity = '0.5'
@@ -616,11 +626,7 @@ function isValidImage(filePath) {
                 resultIndex + j < search.results.length;
                 j++
             ) {
-                setNode(
-                    resultsBox.children[i].children[j],
-                    search.results[resultIndex + j],
-                    i
-                )
+                setNode(resultsBox.children[i].children[j], resultIndex + j, i)
 
                 resultsBox.children[i].children[j].style.display = ''
             }
@@ -631,9 +637,7 @@ function isValidImage(filePath) {
                 j < columnCount && resultIndex + j < search.results.length;
                 j++
             ) {
-                resultsBox.children[i].appendChild(
-                    getNode(search.results[resultIndex + j], i)
-                )
+                resultsBox.children[i].appendChild(getNode(resultIndex + j, i))
 
                 resultsBox.children[i].children[j].style.display = ''
             }
