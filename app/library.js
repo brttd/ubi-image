@@ -414,17 +414,55 @@ function isValidImage(filePath) {
 
     const visibleRows = {
         start: 0,
-        end: 0
+        end: 0,
+        userStart: 0,
+        userEnd: 0
     }
+
+    const imagesToLoad = []
 
     let columnCount = 0
     let columnWidth = 0
     let rowHeight = 0
 
+    let imageSize = 0
+
     let needsUpdate = true
     let needsSizeUpdate = true
+    let needsLoad = true
 
-    function getNode(file) {
+    function onImageLoad() {
+        this.style.opacity = ''
+    }
+
+    function loadImages() {
+        let img
+
+        for (let i = 0; i < imagesToLoad.length; i++) {
+            if (
+                imagesToLoad[i].rowIndex >= visibleRows.userStart &&
+                imagesToLoad[i].rowIndex <= visibleRows.userEnd
+            ) {
+                img = imagesToLoad.splice(i, 1)[0]
+
+                break
+            }
+        }
+
+        if (!img) {
+            img = imagesToLoad.pop()
+        }
+
+        img.src = img.title
+
+        if (imagesToLoad.length > 0) {
+            requestAnimationFrame(loadImages)
+        } else {
+            needsLoad = true
+        }
+    }
+
+    function getNode(file, rowIndex) {
         if (resultNodes.length > 0) {
             return setNode(resultNodes.pop(), file)
         }
@@ -433,7 +471,11 @@ function isValidImage(filePath) {
         elem.appendChild(document.createElement('img'))
         elem.appendChild(document.createElement('label'))
 
-        return setNode(elem, file)
+        elem.firstChild.alt = ' '
+
+        elem.firstChild.addEventListener('load', onImageLoad)
+
+        return setNode(elem, file, rowIndex)
     }
     function getRowNode() {
         let elem
@@ -451,8 +493,32 @@ function isValidImage(filePath) {
         return elem
     }
 
-    function setNode(node, file) {
-        node.firstChild.src = file.path
+    function updateNodeSize(node, index) {
+        node.style.width = columnWidth + 'px'
+        node.lastChild.style.width = columnWidth + 'px'
+
+        if (search.results[index].height / search.results[index].width > 1) {
+            node.firstChild.style.width =
+                imageSize *
+                    (search.results[index].width /
+                        search.results[index].height) +
+                'px'
+            node.firstChild.style.height = imageSize + 'px'
+        } else {
+            node.firstChild.style.width = imageSize + 'px'
+            node.firstChild.style.height =
+                imageSize *
+                    (search.results[index].height /
+                        search.results[index].width) +
+                'px'
+        }
+    }
+
+    function setNode(node, file, rowIndex = -1) {
+        if (node.firstChild.title === file.path) {
+            return node
+        }
+
         node.firstChild.title = file.path
 
         node.lastChild.textContent = file.name
@@ -460,7 +526,29 @@ function isValidImage(filePath) {
         node.style.width = columnWidth + 'px'
         node.lastChild.style.width = columnWidth + 'px'
 
-        node.style.display = ''
+        if (file.height / file.width > 1) {
+            node.firstChild.style.width =
+                imageSize * (file.width / file.height) + 'px'
+            node.firstChild.style.height = imageSize + 'px'
+        } else {
+            node.firstChild.style.width = imageSize + 'px'
+            node.firstChild.style.height =
+                imageSize * (file.height / file.width) + 'px'
+        }
+
+        node.firstChild.style.opacity = '0.5'
+
+        node.firstChild.src = ''
+        node.firstChild.rowIndex = rowIndex
+
+        if (!imagesToLoad.includes(node.firstChild)) {
+            imagesToLoad.push(node.firstChild)
+        }
+
+        if (needsLoad) {
+            needsLoad = false
+            requestAnimationFrame(loadImages)
+        }
 
         return node
     }
@@ -485,10 +573,12 @@ function isValidImage(filePath) {
             )
         )
 
+        //Add extra rows as needed
         while (endIndex >= resultsBox.childElementCount) {
             resultsBox.appendChild(getRowNode())
         }
 
+        //Remove rows as needed
         while (
             resultsBox.childElementCount >
             Math.min(
@@ -519,21 +609,6 @@ function isValidImage(filePath) {
         for (let i = startIndex; i <= endIndex; i++) {
             let resultIndex = columnCount * i
 
-            //Remove all extra children in row
-            for (
-                let j = Math.max(
-                    0,
-                    Math.min(
-                        columnCount,
-                        search.results.length - resultIndex + 1
-                    )
-                );
-                j < resultsBox.children[i].childElementCount;
-                j++
-            ) {
-                resultsBox.children[i].children[j].style.display = 'none'
-            }
-
             //Update all current results in row
             for (
                 let j = 0;
@@ -543,8 +618,11 @@ function isValidImage(filePath) {
             ) {
                 setNode(
                     resultsBox.children[i].children[j],
-                    search.results[resultIndex + j]
+                    search.results[resultIndex + j],
+                    i
                 )
+
+                resultsBox.children[i].children[j].style.display = ''
             }
 
             //Add all other results, if there are more results than current nodes
@@ -554,28 +632,33 @@ function isValidImage(filePath) {
                 j++
             ) {
                 resultsBox.children[i].appendChild(
-                    getNode(search.results[resultIndex + j])
+                    getNode(search.results[resultIndex + j], i)
                 )
+
+                resultsBox.children[i].children[j].style.display = ''
+            }
+
+            //Hide all extra children in row
+            for (
+                let j = Math.max(0, search.results.length - resultIndex + 1);
+                j < resultsBox.children[i].childElementCount;
+                j++
+            ) {
+                resultsBox.children[i].children[j].style.display = 'none'
             }
         }
 
         visibleRows.start = startIndex
         visibleRows.end = endIndex
-    }
 
-    function updateRowSizes() {
-        for (let i = 0; i < resultsBox.childElementCount; i++) {
-            resultsBox.children[i].style.height = rowHeight + 'px'
-            resultsBox.children[i].style.width =
-                columnWidth * columnCount + 'px'
+        visibleRows.userStart = Math.max(
+            0,
+            Math.floor((userViewBox.top - rowHeight) / rowHeight)
+        )
 
-            for (let j = 0; j < resultsBox.children[i].childElementCount; j++) {
-                resultsBox.children[i].children[j].style.width =
-                    columnWidth + 'px'
-                resultsBox.children[i].children[j].lastChild.style.width =
-                    columnWidth + 'px'
-            }
-        }
+        visibleRows.userEnd = Math.ceil(
+            (userViewBox.top + userViewBox.height) / rowHeight
+        )
     }
 
     function updateRows() {
@@ -597,16 +680,66 @@ function isValidImage(filePath) {
 
         columnWidth = ~~(resultsBox.clientWidth / columnCount) - imageSpacing
 
+        imageSize = columnWidth - imageSpacing
+
         rowHeight = columnWidth + imageLabelHeight
 
         userViewBox.top = resultsBox.scrollTop
         userViewBox.height = resultsBox.offsetHeight
 
+        if (columnCount < oldColumnCount) {
+            for (let i = 0; i < resultsBox.childElementCount; i++) {
+                resultsBox.children[i].style.height = rowHeight + 'px'
+                resultsBox.children[i].style.width =
+                    columnWidth * columnCount + 'px'
+
+                while (resultsBox.children[i].childElementCount > columnCount) {
+                    resultNodes.push(resultsBox.children[i].lastChild)
+
+                    resultsBox.children[i].removeChild(
+                        resultsBox.children[i].lastChild
+                    )
+                }
+
+                for (
+                    let j = 0;
+                    j < resultsBox.children[i].childElementCount &&
+                    columnCount * i + j < search.results.length;
+                    j++
+                ) {
+                    resultsBox.children[i].children[j].firstChild.rowIndex = i
+
+                    updateNodeSize(
+                        resultsBox.children[i].children[j],
+                        i * columnCount + j
+                    )
+                }
+            }
+        } else {
+            for (let i = 0; i < resultsBox.childElementCount; i++) {
+                resultsBox.children[i].style.height = rowHeight + 'px'
+                resultsBox.children[i].style.width =
+                    columnWidth * columnCount + 'px'
+
+                for (
+                    let j = 0;
+                    j < resultsBox.children[i].childElementCount &&
+                    columnCount * i + j < search.results.length;
+                    j++
+                ) {
+                    resultsBox.children[i].children[j].firstChild.rowIndex = i
+
+                    updateNodeSize(
+                        resultsBox.children[i].children[j],
+                        i * columnCount + j
+                    )
+                }
+            }
+        }
+
         if (oldColumnCount !== columnCount) {
             updateRows()
         }
-
-        updateRowSizes()
     }
 
     onResize = () => {
