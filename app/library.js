@@ -431,10 +431,6 @@ function isValidImage(filePath) {
     let needsSizeUpdate = true
     let needsLoad = true
 
-    function onImageLoad() {
-        this.style.opacity = ''
-    }
-
     function loadImages() {
         let img
 
@@ -472,8 +468,6 @@ function isValidImage(filePath) {
         elem.appendChild(document.createElement('label'))
 
         elem.firstChild.alt = ' '
-
-        elem.firstChild.addEventListener('load', onImageLoad)
 
         return setNode(elem, resultIndex, rowIndex)
     }
@@ -545,8 +539,6 @@ function isValidImage(filePath) {
                         search.results[resultIndex].width) +
                 'px'
         }
-
-        node.firstChild.style.opacity = '0.5'
 
         node.firstChild.src = ''
         node.firstChild.rowIndex = rowIndex
