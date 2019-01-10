@@ -1674,6 +1674,7 @@ function isValidImage(filePath) {
             return false
         }
 
+        imagePreview.style.display = ''
         imagePreview.src = currentImage.file
 
         let bounds = resultsBox.getBoundingClientRect()
@@ -1709,6 +1710,14 @@ function isValidImage(filePath) {
         currentImage.displayHalfWidth =
             (currentImage.width * imageDisplayScale) / 2
     }
+
+    imagePreview.addEventListener('load', () => {
+        requestAnimationFrame(() => {
+            if (currentImage.show && currentImage.node) {
+                imagePreview.style.display = ''
+            }
+        })
+    })
 
     invertControlInput.addEventListener('change', () => {
         userOptions.change('invertControl', invertControlInput.checked)
