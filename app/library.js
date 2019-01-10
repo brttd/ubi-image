@@ -805,14 +805,14 @@ function isValidImage(filePath) {
                 //If the search term was not in the filename, nor file folders
                 if (tempIndex === -1) {
                     //Then increase the missed score, and count
-                    missed += search.terms[i].length / 3 + 1
+                    missed += search.terms[i].length / 4 + 1
                     missCount += 1
                 }
             }
         }
 
         if (missCount <= Math.round(search.terms.length / 3)) {
-            file.searchScore = index + missed * 3
+            file.searchScore = index + missed * 4
 
             let resultIndex = search.results.findIndex(
                 item => item.searchScore >= file.searchScore
