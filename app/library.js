@@ -142,15 +142,16 @@ function isValidImage(filePath) {
 
 //Search UI
 {
-    //Change to be actual result count, instead of row count
-    userOptions.add('maxSearchResults', 80)
     userOptions.add('searchResultsSize', 200)
+
+    userOptions.add('flickScroll', true)
 
     const searchInput = document.getElementById('search-box')
     const ignoreInput = document.getElementById('ignore-box')
-    const maxResultsInput = document.getElementById('max-results')
     const resultSizeInput = document.getElementById('result-size')
     const showOptionsButton = document.getElementById('show-options')
+
+    const flickScrollInput = document.getElementById('flick-scroll')
 
     const searchOptions = document.getElementById('search-options')
     searchOptions.style.display = 'none'
@@ -902,6 +903,71 @@ function isValidImage(filePath) {
         updateRows()
     })
 
+    //Mouse scrolling (click, and flick)
+    {
+        let mouseDown = false
+        let scrollOffset = 0
+
+        let flickScrollSpeed = 0
+
+        let needsScrollUpdate = true
+
+        function updateScroll() {
+            needsScrollUpdate = true
+
+            resultsBox.scrollTop += scrollOffset
+            scrollOffset = 0
+        }
+        function flickScroll() {
+            scrollOffset -= flickScrollSpeed
+
+            flickScrollSpeed *= 0.93
+
+            if (needsScrollUpdate) {
+                needsScrollUpdate = false
+                requestAnimationFrame(updateScroll)
+            }
+
+            if (flickScrollSpeed < -1 || flickScrollSpeed > 1) {
+                setTimeout(flickScroll, 20)
+            }
+        }
+
+        flickScrollInput.addEventListener('change', event => {
+            userOptions.change('flickScroll', flickScrollInput.checked)
+        })
+
+        resultsBox.addEventListener('mousedown', () => {
+            flickScrollSpeed = 0
+
+            if (event.target.tagName !== 'IMG') {
+                mouseDown = true
+            }
+        })
+        window.addEventListener('mousemove', event => {
+            if (mouseDown) {
+                scrollOffset -= event.movementY
+
+                flickScrollSpeed = (flickScrollSpeed + event.movementY) / 2
+
+                if (needsScrollUpdate) {
+                    needsScrollUpdate = false
+                    requestAnimationFrame(updateScroll)
+                }
+            }
+        })
+        window.addEventListener('mouseup', () => {
+            mouseDown = false
+
+            if (flickScrollSpeed !== 0 && userOptions.flickScroll) {
+                flickScroll()
+            }
+        })
+        window.addEventListener('blur', () => {
+            mouseDown = false
+        })
+    }
+
     onUserOptionsLoad.push(() => {
         if (
             typeof userOptions.searchResultsSize !== 'number' ||
@@ -913,9 +979,16 @@ function isValidImage(filePath) {
         } else if (userOptions.searchResultsSize > 1000) {
             userOptions.searchResultsSize = 1000
         }
+
+        if (typeof userOptions.flickScroll !== 'boolean') {
+            userOptions.flickScroll = true
+        }
+
         userOptions.searchResultsSize = ~~userOptions.searchResultsSize
 
         resultSizeInput.value = userOptions.searchResultsSize
+
+        flickScrollInput.checked = userOptions.flickScroll
 
         onResize()
     })
