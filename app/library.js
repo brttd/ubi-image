@@ -541,6 +541,9 @@ function isValidImage(filePath) {
                 'px'
         }
 
+        node.firstChild.imgWidth = search.results[resultIndex].width
+        node.firstChild.imgHeight = search.results[resultIndex].height
+
         node.firstChild.src = ''
         node.firstChild.rowIndex = rowIndex
 
@@ -1610,9 +1613,21 @@ function isValidImage(filePath) {
     const previewOpacityInput = document.getElementById('preview-opacity')
     const previewMaxSizeInput = document.getElementById('preview-max-size')
 
-    let currentResult = null
+    let needsMove = true
     let needsUpdate = true
-    let needsResize = true
+
+    let currentImage = {
+        node: false,
+        file: null,
+
+        show: false,
+
+        width: 0,
+        height: 0,
+
+        displayHalfWidth: 0,
+        displayHalfHeight: 0
+    }
 
     let position = {
         minTop: 0,
@@ -1624,122 +1639,76 @@ function isValidImage(filePath) {
         maxLeft: 0
     }
 
-    updatePosition = () => {
-        needsUpdate = true
+    function updatePosition() {
+        needsMove = true
 
         previewElement.style.top =
-            Math.max(position.minTop, Math.min(position.top, position.maxTop)) +
-            'px'
+            Math.ceil(
+                Math.max(
+                    currentImage.displayHalfHeight,
+                    Math.min(
+                        position.top,
+                        window.innerHeight - currentImage.displayHalfHeight
+                    )
+                )
+            ) + 'px'
 
         previewElement.style.left =
-            Math.max(
-                position.minLeft,
-                Math.min(position.left, position.maxLeft)
+            Math.ceil(
+                Math.max(
+                    currentImage.displayHalfWidth,
+                    Math.min(
+                        position.left,
+                        window.innerWidth - currentImage.displayHalfWidth
+                    )
+                )
             ) + 'px'
     }
 
-    function centerImagePreview() {
-        let bounds = previewElement.getBoundingClientRect()
+    function updateDisplay() {
+        needsUpdate = true
 
-        position.minTop = bounds.height / 2
-        position.maxTop = window.innerHeight - bounds.height / 2
+        previewElement.style.display = currentImage.show ? '' : 'none'
 
-        position.minLeft = bounds.width / 2
-        position.maxLeft = window.innerWidth - bounds.width / 2
-
-        if (needsUpdate) {
-            updatePosition()
+        if (!currentImage.file) {
+            return false
         }
-    }
 
-    function updateMaxSize() {
-        needsResize = true
+        imagePreview.src = currentImage.file
+
         let bounds = resultsBox.getBoundingClientRect()
 
-        previewElement.style.maxWidth =
+        let imageMaxWidth = Math.floor(
             Math.min(window.innerWidth, bounds.height) *
-                (userOptions.previewMaxSize / 100) +
-            'px'
-        previewElement.style.maxHeight =
+                (userOptions.previewMaxSize / 100)
+        )
+        let imageMaxHeight = Math.floor(
             Math.min(window.innerHeight, bounds.width) *
-                (userOptions.previewMaxSize / 100) +
-            'px'
+                (userOptions.previewMaxSize / 100)
+        )
 
-        centerImagePreview()
-    }
+        let imageDisplayScale =
+            Math.min(imageMaxWidth, currentImage.width) / currentImage.width
 
-    let lastHideTime = 0
-    let hideDelay = 100
-
-    function hidePreview() {
-        lastHideTime = Date.now()
-
-        setTimeout(() => {
-            if (!currentResult && Date.now() - hideDelay >= lastHideTime - 50) {
-                previewElement.style.display = 'none'
-            }
-        }, hideDelay)
-    }
-
-    updatePreviewDisplay = (ctrlKey = false) => {
-        if (currentResult && ctrlKey !== userOptions.invertControl) {
-            previewElement.style.display = ''
-        } else {
-            previewElement.style.display = 'none'
+        if (
+            imageMaxWidth / imageMaxHeight >
+            currentImage.width / currentImage.height
+        ) {
+            imageDisplayScale =
+                Math.min(imageMaxHeight, currentImage.height) /
+                currentImage.height
         }
+
+        previewElement.style.maxWidth =
+            currentImage.width * imageDisplayScale + 'px'
+        previewElement.style.maxHeight =
+            currentImage.height * imageDisplayScale + 'px'
+
+        currentImage.displayHalfHeight =
+            (currentImage.height * imageDisplayScale) / 2
+        currentImage.displayHalfWidth =
+            (currentImage.width * imageDisplayScale) / 2
     }
-
-    resultsBox.addEventListener('mousemove', event => {
-        position.top = event.clientY
-        position.left = event.clientX
-
-        if (needsUpdate) {
-            needsUpdate = false
-            requestAnimationFrame(updatePosition)
-        }
-    })
-
-    resultsBox.addEventListener(
-        'mouseover',
-        event => {
-            if (
-                event.target.tagName === 'IMG' ||
-                event.target.tagName === 'LABEL'
-            ) {
-                currentResult = event.target.parentNode
-            } else if (
-                event.target.firstElementChild &&
-                event.target.firstElementChild.tagName === 'IMG'
-            ) {
-                currentResult = event.target
-            } else {
-                return false
-            }
-
-            updatePreviewDisplay(event.ctrlKey)
-
-            imagePreview.src = currentResult.firstElementChild.src
-
-            requestAnimationFrame(centerImagePreview)
-        },
-        true
-    )
-
-    resultsBox.addEventListener(
-        'mouseout',
-        event => {
-            if (
-                event.target.className === 'row' ||
-                event.target.tagName === 'IMG' ||
-                event.target === currentResult ||
-                event.target === resultsBox
-            ) {
-                currentResult = null
-                hidePreview()
-            }
-        },
-        true
-    )
 
     invertControlInput.addEventListener('change', () => {
         userOptions.change('invertControl', invertControlInput.checked)
@@ -1776,9 +1745,9 @@ function isValidImage(filePath) {
 
             userOptions.change('previewMaxSize', value)
 
-            if (needsResize) {
-                needsResize = false
-                requestAnimationFrame(updateMaxSize)
+            if (needsUpdate) {
+                needsUpdate = false
+                requestAnimationFrame(updateDisplay)
             }
         }
     })
@@ -1786,22 +1755,111 @@ function isValidImage(filePath) {
         previewMaxSizeInput.value = userOptions.previewMaxSize
     })
 
+    resultsBox.addEventListener('mousemove', event => {
+        position.top = event.clientY
+        position.left = event.clientX
+
+        if (currentImage.node) {
+            currentImage.show = event.ctrlKey !== userOptions.invertControl
+
+            if (needsMove) {
+                needsMove = false
+                requestAnimationFrame(updatePosition)
+            }
+        }
+    })
+
+    resultsBox.addEventListener(
+        'mouseover',
+        event => {
+            if (
+                event.target.tagName === 'IMG' ||
+                event.target.tagName === 'LABEL'
+            ) {
+                currentImage.node = event.target.parentNode
+            } else if (
+                event.target.firstElementChild &&
+                event.target.firstElementChild.tagName === 'IMG'
+            ) {
+                currentImage.node = event.target
+            } else {
+                return false
+            }
+
+            currentImage.file = currentImage.node.firstElementChild.title
+
+            currentImage.width = currentImage.node.firstElementChild.imgWidth
+            currentImage.height = currentImage.node.firstElementChild.imgHeight
+
+            currentImage.show = event.ctrlKey !== userOptions.invertControl
+
+            if (needsUpdate) {
+                needsUpdate = false
+                requestAnimationFrame(updateDisplay)
+            }
+        },
+        true
+    )
+
+    resultsBox.addEventListener(
+        'mouseout',
+        event => {
+            if (
+                event.target.className === 'row' ||
+                event.target.tagName === 'IMG' ||
+                event.target === currentImage.node ||
+                event.target === resultsBox
+            ) {
+                currentImage.show = false
+                currentImage.file = ''
+                currentImage.node = null
+
+                if (needsUpdate) {
+                    needsUpdate = false
+                    requestAnimationFrame(updateDisplay)
+                }
+            }
+        },
+        true
+    )
+
     window.addEventListener('resize', () => {
-        if (needsResize) {
-            needsResize = false
-            requestAnimationFrame(updateMaxSize)
+        if (needsUpdate) {
+            needsUpdate = false
+            requestAnimationFrame(updateDisplay)
         }
     })
 
     window.addEventListener('keydown', event => {
-        updatePreviewDisplay(event.ctrlKey)
+        if (currentImage.node) {
+            currentImage.show = event.ctrlKey !== userOptions.invertControl
+
+            if (needsUpdate) {
+                needsUpdate = false
+                requestAnimationFrame(updateDisplay)
+            }
+        }
     })
     window.addEventListener('keyup', event => {
-        updatePreviewDisplay(event.ctrlKey)
+        if (currentImage.node) {
+            currentImage.show = event.ctrlKey !== userOptions.invertControl
+
+            if (needsUpdate) {
+                needsUpdate = false
+                requestAnimationFrame(updateDisplay)
+            }
+        }
     })
 
     window.addEventListener('blur', () => {
-        hidePreview()
+        if (currentImage.show) {
+            currentImage.show = false
+
+            if (needsUpdate) {
+                needsUpdate = false
+                requestAnimationFrame(updateDisplay)
+            }
+        }
     })
 
     onUserOptionsLoad.push(() => {
@@ -1832,7 +1890,10 @@ function isValidImage(filePath) {
 
         previewMaxSizeInput.value = userOptions.previewMaxSize
 
-        requestAnimationFrame(updateMaxSize)
+        if (needsUpdate) {
+            needsUpdate = false
+            requestAnimationFrame(updateDisplay)
+        }
     })
 }
 
