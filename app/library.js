@@ -1680,12 +1680,16 @@ function isValidImage(filePath) {
         let bounds = resultsBox.getBoundingClientRect()
 
         let imageMaxWidth = Math.floor(
-            Math.min(window.innerWidth, bounds.height) *
-                (userOptions.previewMaxSize / 100)
+            Math.min(
+                window.innerWidth,
+                bounds.height * (userOptions.previewMaxSize / 100)
+            )
         )
         let imageMaxHeight = Math.floor(
-            Math.min(window.innerHeight, bounds.width) *
-                (userOptions.previewMaxSize / 100)
+            Math.min(
+                window.innerHeight,
+                bounds.width * (userOptions.previewMaxSize / 100)
+            )
         )
 
         let imageDisplayScale =
