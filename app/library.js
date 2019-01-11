@@ -1769,7 +1769,17 @@ function isValidImage(filePath) {
         position.left = event.clientX
 
         if (currentImage.node) {
-            currentImage.show = event.ctrlKey !== userOptions.invertControl
+            if (
+                (event.ctrlKey !== userOptions.invertControl) !==
+                currentImage.show
+            ) {
+                currentImage.show = event.ctrlKey !== userOptions.invertControl
+
+                if (needsUpdate) {
+                    needsUpdate = false
+                    requestAnimationFrame(updateDisplay)
+                }
+            }
 
             if (needsMove) {
                 needsMove = false
