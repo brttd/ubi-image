@@ -34,27 +34,6 @@ let searchWindow = null
         )
     }
 
-    function folderWatcherChange(folder, eventType, filename) {
-        if (eventType === 'change') {
-            fs.stat(path.join(folder.path, filename), (error, stats) => {
-                if (error) {
-                    console.error(error)
-                    return false
-                }
-
-                if (stats.isDirectory()) {
-                    updateFolder
-                }
-            })
-        }
-    }
-    function folderWatcherClose(folder) {
-        searchWindow.send('remove-folder', folder.path)
-    }
-    function folderWatcherError(folder) {
-        searchWindow.send('remove-folder', folder.path)
-    }
-
     function sendFolderFileAddChange(folder) {
         let addList = folder.tempAddFiles.splice(0, maxChangeCount)
 
@@ -173,19 +152,6 @@ let searchWindow = null
 
             remove: removeFolder.bind(null, folderPath)
         }
-
-        folder.watcher = fs.watch(
-            folderPath,
-            {
-                persistent: false,
-                recursive: true,
-                encoding: 'utf8'
-            },
-            folderWatcherChange.bind(null, folder)
-        )
-
-        folder.watcher.on('close', folderWatcherClose.bind(null, folder))
-        folder.watcher.on('error', folderWatcherError.bind(null, folder))
 
         updateFolder(folder)
 
