@@ -1,28 +1,14 @@
-const { remote } = require('electron')
+const { remote, ipcRenderer } = require('electron')
 
 const { app, clipboard, dialog, Menu, MenuItem, nativeImage, shell } = remote
 const fs = require('fs')
 const path = require('path')
-const async = require('async')
-const imageSize = require('image-size')
-
-const validImageExtensions = [
-    '.bmp',
-    '.gif',
-    '.ico',
-    '.jpeg',
-    '.jpg',
-    '.png',
-    '.webp',
-    '.svg'
-]
 
 const folders = [
     /*
         {
             name: '..',
             path: '..',
-            watcher: {...},
 
             updateSearch: (...),
 
@@ -135,10 +121,6 @@ let checkSearchDisplay
 let removeSearchDisplay
 
 let onResize
-
-function isValidImage(filePath) {
-    return validImageExtensions.includes(path.extname(filePath).toLowerCase())
-}
 
 //Search UI
 {
@@ -1019,102 +1001,6 @@ function isValidImage(filePath) {
         }
     }
 
-    function onFolderChange(folder, event, file) {
-        //TODO
-    }
-
-    function updateFolder(folder, subDirectory = '') {
-        fs.readdir(
-            path.join(folder.path, subDirectory),
-            (error, contentList) => {
-                if (error) {
-                    return console.error(
-                        "Couldn't search directory",
-                        subDirectory,
-                        'in folder',
-                        folder,
-                        error
-                    )
-                }
-
-                async.each(
-                    contentList,
-                    (item, callback) => {
-                        let fullPath = path.join(
-                            folder.path,
-                            subDirectory,
-                            item
-                        )
-
-                        fs.stat(fullPath, (error, stats) => {
-                            if (error) {
-                                console.error(
-                                    "Couldn't stat item",
-                                    item,
-                                    'in directory',
-                                    subDirectory,
-                                    'in folder',
-                                    folder,
-                                    error
-                                )
-
-                                return callback()
-                            }
-
-                            if (stats.isFile()) {
-                                if (isValidImage(item)) {
-                                    let size = imageSize(fullPath)
-
-                                    folder.files.push({
-                                        name: path.basename(
-                                            item,
-                                            path.extname(item)
-                                        ),
-                                        nameLower:
-                                            path
-                                                .basename(
-                                                    item,
-                                                    path.extname(item)
-                                                )
-                                                .toLowerCase() +
-                                            ' ' +
-                                            path.extname(item).toLowerCase(),
-
-                                        path: fullPath,
-
-                                        folders: subDirectory.split(path.sep),
-                                        foldersLower: subDirectory
-                                            .split(path.sep)
-                                            .map(folder =>
-                                                folder.toLowerCase()
-                                            ),
-
-                                        width: size.width || 0,
-                                        height: size.height || 0,
-
-                                        extension: path
-                                            .extname(item)
-                                            .toLowerCase()
-                                    })
-
-                                    checkSearchDisplay(
-                                        folder.files[folder.files.length - 1]
-                                    )
-                                }
-                            } else if (stats.isDirectory()) {
-                                updateFolder(
-                                    folder,
-                                    path.join(subDirectory, item)
-                                )
-                            }
-                        })
-                    },
-                    error => {}
-                )
-            }
-        )
-    }
-
     function removeFolder(folderPath) {
         let index = folders.findIndex(folder => folder.path === folderPath)
 
@@ -1128,10 +1014,10 @@ function isValidImage(filePath) {
             removeSearchDisplay(folders[index].files[i])
         }
 
-        folders[index].watcher.close()
-
         folders.splice(index, 1)
         folderList.removeChild(folderList.children[index])
+
+        ipcRenderer.send('remove-folder', folderPath)
 
         userOptions.change('folders', folders.map(folder => folder.path))
     }
@@ -1289,41 +1175,12 @@ function isValidImage(filePath) {
             name: path.basename(folderPath),
             path: folderPath,
 
-            remove: removeFolder.bind(null, folderPath),
-
             files: []
         }
 
         folder.updateSearch = searchFolder.bind(null, folder)
 
-        folder.watcher = fs.watch(
-            folderPath,
-            {
-                persistent: false,
-                recursive: true,
-                encoding: 'utf8'
-            },
-            onFolderChange.bind(null, folder)
-        )
-
-        folder.watcher.on('close', event => {
-            if (folder.removed !== true) {
-                alert(
-                    'There was a problem with the folder "' +
-                        folder.name +
-                        '"!\nIt has been removed.'
-                )
-
-                console.error(event)
-
-                removeFolder(folderPath)
-            }
-        })
-        folder.watcher.on('error', error => {
-            console.error('Watcher error!', error)
-        })
-
-        updateFolder(folder)
+        ipcRenderer.send('add-folder', folderPath)
 
         folders.push(folder)
 
@@ -1341,7 +1198,10 @@ function isValidImage(filePath) {
         element.lastChild.title = folderPath
 
         element.appendChild(document.createElement('button'))
-        element.lastChild.addEventListener('click', folder.remove)
+        element.lastChild.addEventListener(
+            'click',
+            removeFolder.bind(null, folderPath)
+        )
         element.lastChild.textContent = '−'
         element.lastChild.title = 'Remove ' + folderPath
 
@@ -1433,6 +1293,26 @@ function isValidImage(filePath) {
 
         onResize()
     }
+
+    ipcRenderer.on('remove-folder', (event, folderPath) => {
+        removeFolder(folderPath)
+    })
+    ipcRenderer.on(
+        'add-to-folder',
+        (event, folderPath, changeType, fileList) => {
+            let index = folders.findIndex(folder => folder.path === folderPath)
+
+            if (index === -1) {
+                return false
+            }
+
+            for (let i = 0; i < fileList.length; i++) {
+                folders[index].files.push(fileList[i])
+
+                checkSearchDisplay(fileList[i])
+            }
+        }
+    )
 
     addFolderButton.addEventListener('click', () => {
         dialog.showOpenDialog(
@@ -1530,7 +1410,7 @@ function isValidImage(filePath) {
 
     const alwaysOnTopButton = document.getElementById('always-top')
 
-    const thisWindow = remote.getCurrentWindow()
+    thisWindow = remote.getCurrentWindow()
 
     let maximized = false
 
@@ -2013,6 +1893,29 @@ function isValidImage(filePath) {
     contextMenu.append(showImage)
 
     const imageItems = [copyImage, copyImagePath, openImage, showImage]
+
+    const refreshFolder = new MenuItem({
+        label: 'Refresh Folder',
+
+        click: () => {
+            if (folderPath) {
+                let index = folders.findIndex(
+                    folder => folder.path === folderPath
+                )
+
+                if (index === -1) {
+                    return false
+                }
+
+                for (let i = 0; i < folders[index].files.length; i++) {
+                    removeSearchDisplay(folders[index].files[i])
+                }
+
+                ipcRenderer.send('refresh-folder', folderPath)
+            }
+        }
+    })
+    contextMenu.append(refreshFolder)
 
     const copyFolderPath = new MenuItem({
         label: 'Copy Folder Path',
